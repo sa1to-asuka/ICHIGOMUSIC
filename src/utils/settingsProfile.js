@@ -1,5 +1,5 @@
 const PROFILE_KEY = 'ichigomusic_profile_v2';
-const PROFILE_VERSION = 2;
+const PROFILE_VERSION = 3;
 
 const LEGACY_KEYS = [
   'ichigo_quality',
@@ -83,7 +83,7 @@ export const DEFAULT_PROFILE = {
 
   isFirstTimeSetupComplete: false,
 
-  theme: 'ocean',
+  theme: 'paper',
   colorMode: 'dark',
   layoutMode: 'modern',
 
@@ -105,7 +105,7 @@ export const DEFAULT_PROFILE = {
   ],
 
   lyricStyle: {
-    fontFamily: 'var(--font-title)',
+    fontFamily: 'var(--font-body)',
     fontSize: '1.5rem',
     color: 'var(--text-muted)',
     activeColor: 'var(--primary)',
@@ -128,15 +128,15 @@ export const DEFAULT_PROFILE = {
     show: true,
     locked: true,
     fontSize: 36,
-    fontFamily: 'Inter',
+    fontFamily: 'Instrument Sans',
     fontWeight: 700,
     bold: false,
     alignment: 'center',
     lineCount: 3,
     showTranslation: true,
     translationSize: 20,
-    playedColor: '#ff3366',
-    unplayedColor: '#ffffff',
+    playedColor: '#E08A63',
+    unplayedColor: '#EDE7DF',
     playedColorMode: 'preset',
     unplayedColorMode: 'preset',
     color: 'theme',
@@ -148,8 +148,8 @@ export const DEFAULT_PROFILE = {
     alwaysOnTop: true,
     opacity: 1,
     boldFirstLine: false,
-    desktopColor: '#ff3366',
-    colorPreset: 'strawberry',
+    desktopColor: '#E08A63',
+    colorPreset: 'clay',
     theme: 'ocean',
     customThemeColors: {
       primary: '#ff4081',
@@ -192,8 +192,8 @@ export const DEFAULT_PROFILE = {
     rubySize: 14,
     wordAnimation: 'float',
     staggeredScroll: true,
-    fontFamily: 'Inter',
-    titleFontFamily: 'Outfit',
+    fontFamily: 'Instrument Sans',
+    titleFontFamily: 'Newsreader',
     lyricsPositionY: 50,
     showTranslation: true,
     showFurigana: true,
@@ -429,7 +429,7 @@ export const DEFAULT_PROFILE = {
     sampleRate: 0,
     bufferSize: 0,
     latencyHint: 'interactive',
-    visualizerFps: 120,
+    visualizerFps: 60,
     hardwareAcceleration: true,
     reducedMotion: false
   },
@@ -654,6 +654,18 @@ function normalizeProfile(profile) {
     normalized.audio.crossfade = Math.max(0, Math.min(10, normalized.audio.crossfade));
   }
 
+  // Font families renamed in 3.4; keep old profiles working.
+  const fontAliases = { Inter: 'Instrument Sans', Outfit: 'Newsreader' };
+  const normalizeFont = (value, fallback) => {
+    if (!value) return fallback;
+    if (value === 'var(--font-title)') return 'var(--font-body)';
+    return fontAliases[value] || value;
+  };
+  normalized.lyricStyle.fontFamily = normalizeFont(normalized.lyricStyle.fontFamily, 'var(--font-body)');
+  normalized.desktopLyrics.fontFamily = normalizeFont(normalized.desktopLyrics.fontFamily, 'Instrument Sans');
+  normalized.immersiveLyrics.fontFamily = normalizeFont(normalized.immersiveLyrics.fontFamily, 'Instrument Sans');
+  normalized.immersiveLyrics.titleFontFamily = normalizeFont(normalized.immersiveLyrics.titleFontFamily, 'Newsreader');
+
   return normalized;
 }
 
@@ -665,6 +677,12 @@ function migrateProfile(stored, fromVersion = 1) {
     migrated.audio = deepMerge(DEFAULT_PROFILE.audio, migrated.audio || {});
     migrated.shortcuts = deepMerge(DEFAULT_PROFILE.shortcuts, migrated.shortcuts || {});
     migrated.rendering = deepMerge(DEFAULT_PROFILE.rendering, migrated.rendering || {});
+  }
+
+  // 3.5 makes warm paper the default. Only profiles that were still on the
+  // old default accent move; explicit picks made after this migration stick.
+  if (fromVersion < 3 && migrated.theme === 'ocean') {
+    migrated.theme = 'paper';
   }
 
   return normalizeProfile(migrated);
@@ -729,7 +747,14 @@ export function loadProfile() {
 
 export function saveProfile(partialOrProfile) {
   const current = cachedProfileObj || loadProfile();
-  const merged = normalizeProfile(deepMerge(current, partialOrProfile || {}));
+  const partial = partialOrProfile || {};
+  const keys = Object.keys(partial);
+  // Progress/seek updates only touch lastSession. Skip the full deep-merge and
+  // normalisation pass they do not need.
+  const sessionOnly = keys.length === 1 && keys[0] === 'lastSession';
+  const merged = sessionOnly
+    ? { ...current, lastSession: { ...(current.lastSession || {}), ...(partial.lastSession || {}) } }
+    : normalizeProfile(deepMerge(current, partial));
   cachedProfileObj = merged;
   writeValue(PROFILE_KEY, JSON.stringify(merged));
   return clone(merged);

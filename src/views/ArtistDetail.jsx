@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { api } from '../utils/api';
 import { Play, Heart, Music, Award, Video, Info } from 'lucide-react';
+import SongContextMenu from '../components/SongContextMenu';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui';
 
 const artistTabs = [
   { key: 'songs', name: '热门单曲', icon: Music },
@@ -103,7 +105,7 @@ export default function ArtistDetail() {
         }}
       >
         <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--primary)', letterSpacing: '1.5px', fontWeight: 700, marginBottom: '8px' }}>艺人歌手</span>
-        <h1 style={{ fontFamily: 'var(--font-title)', fontSize: '36px', fontWeight: 800, color: 'var(--text-active)', lineHeight: 1.2 }}>{artist.name}</h1>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--type-display-size, 40px)', fontWeight: 'var(--weight-semibold, 600)', color: 'var(--text-active)', lineHeight: 'var(--type-display-line, 1.12)' }}>{artist.name}</h1>
         {artist.alias?.length > 0 && (
           <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '4px', fontWeight: 500 }}>
             {artist.alias.join(' / ')}
@@ -117,23 +119,19 @@ export default function ArtistDetail() {
       </div>
 
       {/* Artist Tabs */}
-      <div className="search-tabs">
-        {artistTabs.map(tab => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              className={`search-tab-btn ${isActive ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.key)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-            >
-              <Icon size={14} />
-              <span>{tab.name}</span>
-            </button>
-          );
-        })}
-      </div>
+      <Tabs value={activeTab} onValueChange={(value) => { if (value) setActiveTab(value); }}>
+        <TabsList className="search-tabs">
+          {artistTabs.map(tab => {
+            const Icon = tab.icon;
+            return (
+              <TabsTrigger key={tab.key} value={tab.key}>
+                <Icon size={14} />
+                <span>{tab.name}</span>
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+      </Tabs>
 
       {/* Tab Contents */}
       <div style={{ marginTop: '20px' }}>
@@ -164,8 +162,8 @@ export default function ArtistDetail() {
                 {hotSongs.map((song, index) => {
                   const isLiked = likedSongIds.has(song.id);
                   return (
-                    <tr 
-                      key={song.id} 
+                    <SongContextMenu key={song.id} song={song} queue={hotSongs}>
+                    <tr
                       className="song-row"
                       onDoubleClick={() => playSong(song, hotSongs)}
                     >
@@ -206,6 +204,7 @@ export default function ArtistDetail() {
                         </div>
                       </td>
                     </tr>
+                    </SongContextMenu>
                   );
                 })}
               </tbody>

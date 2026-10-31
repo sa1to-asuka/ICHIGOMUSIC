@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { api } from '../utils/api';
 import { Play, Heart } from 'lucide-react';
+import SongContextMenu from '../components/SongContextMenu';
 
 export default function AlbumDetail() {
   const { viewData, playSong, likedSongIds, toggleLike, navigateTo } = useApp();
@@ -68,7 +69,7 @@ export default function AlbumDetail() {
         />
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <span style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--primary)', letterSpacing: '1.5px', fontWeight: 700 }}>专辑</span>
-          <h1 style={{ fontFamily: 'var(--font-title)', fontSize: '28px', fontWeight: 800, color: 'var(--text-active)', lineHeight: 1.2 }}>{album.name}</h1>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--type-h1-size, 32px)', fontWeight: 'var(--weight-semibold, 600)', color: 'var(--text-active)', lineHeight: 'var(--type-h1-line, 1.18)' }}>{album.name}</h1>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontSize: '13px', color: 'var(--text-active)', fontWeight: 500 }}>
@@ -117,8 +118,8 @@ export default function AlbumDetail() {
             {songs.map((song, index) => {
               const isLiked = likedSongIds.has(song.id);
               return (
-                <tr 
-                  key={song.id} 
+                <SongContextMenu key={song.id} song={song} queue={songs}>
+                <tr
                   className="song-row"
                   onDoubleClick={() => playSong(song, songs)}
                 >
@@ -166,6 +167,7 @@ export default function AlbumDetail() {
                     </div>
                   </td>
                 </tr>
+                </SongContextMenu>
               );
             })}
           </tbody>

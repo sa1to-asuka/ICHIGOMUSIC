@@ -39,7 +39,7 @@
 .mode-light.layout-modern .home-accent-chip {
   background: var(--primary) !important;
   border-color: var(--primary) !important;
-  color: #ffffff !important;
+  color: var(--primary-text, #ffffff) !important;
 }
 
 .mode-light.layout-modern .home-accent-chip:hover {
@@ -275,7 +275,7 @@
 .mode-light.layout-modern .stage-action-pill.primary {
   background: var(--primary) !important;
   border-color: var(--primary) !important;
-  color: #ffffff !important;
+  color: var(--primary-text, #ffffff) !important;
 }
 
 /* Right Hub in Light Mode */
@@ -426,7 +426,7 @@
 
 .mode-light.layout-modern .song-title-cell button.play-pause-btn {
   background: var(--primary) !important;
-  color: #ffffff !important;
+  color: var(--primary-text, #ffffff) !important;
 }
 
 /* 10. Leaderboards in Modern Light Mode */

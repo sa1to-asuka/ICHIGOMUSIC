@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { toast } from 'sonner';
 import { useApp, APP_VERSION } from '../context/AppContext';
 import { api } from '../utils/api';
 import Login from './Login';
@@ -16,6 +17,7 @@ import ListeningStatsReport from '../components/ListeningStatsReport';
 import { IMMERSIVE_MODE_OPTIONS, IMMERSIVE_MODE_PARAMETER_KEYS, normalizeImmersiveMode, KTV_TEMPLATE_GALLERY } from '../utils/immersiveModes';
 import { IMMERSIVE_PRESETS, IMMERSIVE_PRESET_MAP } from '../utils/immersivePresets';
 import { clearRuntimeLogs, formatRuntimeLogs, formatErrorWarnLogs, getRuntimeLogs, subscribeRuntimeLogs } from '../utils/runtimeLog';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Switch, SegmentedControl, SegmentedControlItem, Tabs, TabsList, TabsTrigger } from '../components/ui';
 const T = {
   title: '系统设置与偏好',
   themeTab: '界面与外观',
@@ -30,6 +32,7 @@ const T = {
 };
 
 const themeOptions = [
+  { id: 'paper', name: '暖纸', color: '#b4552d' },
   { id: 'strawberry', name: '草莓红', color: '#ff3366' },
   { id: 'sakura', name: '樱花粉', color: '#ff66b2' },
   { id: 'matcha', name: '抹茶绿', color: '#4caf50' },
@@ -40,6 +43,7 @@ const themeOptions = [
 ];
 
 const desktopColorPresets = {
+  clay: { label: '暖陶', played: '#E08A63', unplayed: '#EDE7DF', stroke: '#241A12' },
   strawberry: { label: '草莓红', played: '#ff3366', unplayed: '#ffffff', stroke: '#4a0e1c' },
   aurora: { label: '极光绿', played: '#00e676', unplayed: '#e0f7fa', stroke: '#003300' },
   ocean: { label: '海洋蓝', played: '#00b0ff', unplayed: '#e1f5fe', stroke: '#0d47a1' },
@@ -77,37 +81,28 @@ function SettingRow({ label, hint, children }) {
 
 function SmoothSwitch({ checked, onChange, disabled = false }) {
   return (
-    <div
-      className={`smooth-switch ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''}`}
-      onClick={() => !disabled && onChange(!checked)}
-      role="switch"
-      aria-checked={checked}
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); !disabled && onChange(!checked); } }}
-    >
-      <div className="smooth-switch-thumb" />
-    </div>
+    <Switch
+      checked={checked}
+      onCheckedChange={onChange}
+      disabled={disabled}
+      aria-label="切换开关"
+    />
   );
 }
 
 function Segment({ options, value, onChange }) {
   return (
-    <div className="segmented-control">
+    <SegmentedControl value={value} onValueChange={(next) => { if (next) onChange(next); }} type="single">
       {options.map((item) => {
         const optionValue = typeof item === 'object' ? item.value : item;
         const label = typeof item === 'object' ? item.label : item;
         return (
-          <button
-            key={String(optionValue)}
-            type="button"
-            className={value === optionValue ? 'active' : ''}
-            onClick={() => onChange(optionValue)}
-          >
+          <SegmentedControlItem key={String(optionValue)} value={String(optionValue)}>
             {label}
-          </button>
+          </SegmentedControlItem>
         );
       })}
-    </div>
+    </SegmentedControl>
   );
 }
 
@@ -116,7 +111,7 @@ function Segment({ options, value, onChange }) {
    ========================================================================== */
 function DesktopLyricsSandbox({ config }) {
   const [sweepProgress, setSweepProgress] = useState(0);
-  const preset = desktopColorPresets[config.colorPreset || 'strawberry'] || desktopColorPresets.strawberry;
+  const preset = desktopColorPresets[config.colorPreset || 'clay'] || desktopColorPresets.clay;
   const playedColor = config.colorPreset === 'custom' ? (config.playedColor || '#ff3366') : preset.played;
   const unplayedColor = config.colorPreset === 'custom' ? (config.unplayedColor || '#ffffff') : preset.unplayed;
   const strokeColor = config.colorPreset === 'custom' ? (config.textStroke?.color || '#000000') : (config.textStroke?.color || preset.stroke);
@@ -128,7 +123,7 @@ function DesktopLyricsSandbox({ config }) {
   const fontSize = Math.min(42, Math.max(18, config.fontSize || 36));
   const translationSize = Math.min(26, Math.max(12, config.translationSize || 20));
   const fontWeight = config.fontWeight || 700;
-  const fontFamily = config.fontFamily || 'Inter';
+  const fontFamily = config.fontFamily || 'Instrument Sans';
 
   // Mock preview loop
   useEffect(() => {
@@ -484,6 +479,8 @@ export default function Settings() {
                       setTheme(opt.id);
                     }}
                     title={opt.name}
+                    aria-label={`主题：${opt.name}`}
+                    aria-pressed={isSelected}
                   >
                     {isSelected && <Check size={16} color={opt.id === 'dark' ? '#000000' : '#ffffff'} strokeWidth={3} />}
                   </button>
@@ -574,11 +571,14 @@ export default function Settings() {
           <h3 className="settings-title"><Palette size={18} />色彩与发光特效</h3>
           <div className="settings-content">
             <SettingRow label="配色方案预设" hint="选择经典预设色彩或切换为完全自定义配色">
-              <select className="setting-select" value={desktopLyricsConfig.colorPreset || 'strawberry'} onChange={(e) => updateDesktop({ colorPreset: e.target.value })}>
-                {Object.entries(desktopColorPresets).map(([key, item]) => (
-                  <option key={key} value={key}>{item.label}</option>
-                ))}
-              </select>
+              <Select value={desktopLyricsConfig.colorPreset || 'strawberry'} onValueChange={(value) => updateDesktop({ colorPreset: value })}>
+                <SelectTrigger aria-label="配色方案预设"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(desktopColorPresets).map(([key, item]) => (
+                    <SelectItem key={key} value={key}>{item.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </SettingRow>
 
             {desktopLyricsConfig.colorPreset === 'custom' && (
@@ -714,15 +714,18 @@ export default function Settings() {
           <h3 className="settings-title"><Eye size={18} />排版、字号与对齐</h3>
           <div className="settings-content">
             <SettingRow label="字体选择">
-              <select className="setting-select" value={desktopLyricsConfig.fontFamily || 'Inter'} onChange={(e) => updateDesktop({ fontFamily: e.target.value })}>
-                <option value="Inter">Inter (现代无衬线)</option>
-                <option value="Outfit">Outfit (圆润几何)</option>
-                <option value="Microsoft YaHei">微软雅黑</option>
-                <option value="Noto Sans SC">思源黑体</option>
-                <option value="Noto Serif SC">思源宋体</option>
-                <option value="KaiTi">楷体</option>
-                <option value="LXGW WenKai">霞鹜文楷</option>
-              </select>
+              <Select value={desktopLyricsConfig.fontFamily || 'Instrument Sans'} onValueChange={(value) => updateDesktop({ fontFamily: value })}>
+                <SelectTrigger aria-label="字体选择"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Instrument Sans">Instrument Sans (现代无衬线)</SelectItem>
+                  <SelectItem value="Newsreader">Newsreader (编辑衬线)</SelectItem>
+                  <SelectItem value="Microsoft YaHei">微软雅黑</SelectItem>
+                  <SelectItem value="Noto Sans SC">思源黑体</SelectItem>
+                  <SelectItem value="Noto Serif SC">思源宋体</SelectItem>
+                  <SelectItem value="KaiTi">楷体</SelectItem>
+                  <SelectItem value="LXGW WenKai">霞鹜文楷</SelectItem>
+                </SelectContent>
+              </Select>
             </SettingRow>
             <SettingRow label={`主歌词字号：${desktopLyricsConfig.fontSize || 36}px`}>
               <input className="setting-slider" type="range" min="18" max="64" step="2" value={desktopLyricsConfig.fontSize || 36} onChange={(e) => updateDesktop({ fontSize: Number(e.target.value) })} />
@@ -782,27 +785,26 @@ export default function Settings() {
           <h3 className="settings-title"><Music4 size={18} />沉浸式全屏歌词模式</h3>
           <div className="settings-content">
             <SettingRow label="视觉渲染模式" hint={selectedImmersiveMode.description}>
-              <select
-                className="setting-select"
-                value={currentMode}
-                onChange={(e) => updateImmersive({ lyricsMode: e.target.value })}
-                style={{ minWidth: 200 }}
-              >
-                {IMMERSIVE_MODE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              <Select value={currentMode} onValueChange={(value) => updateImmersive({ lyricsMode: value })}>
+                <SelectTrigger aria-label="视觉渲染模式" style={{ minWidth: 200 }}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {IMMERSIVE_MODE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </SettingRow>
             <SettingRow label="歌词数据来源" hint="自动优先获取 AMLL/QQ/酷狗 高精逐字歌词">
-              <select className="setting-select" value={advancedLyricConfig.lyricSources || 'amll,qq,kugou'} onChange={(e) => updateImmersive({ lyricSources: e.target.value })}>
-                <option value="amll,qq,kugou">自动推荐：时长匹配 + 逐字优先</option>
-                <option value="netease">网易云原始歌词</option>
-                <option value="amll">AMLL TTML 逐字</option>
-                <option value="qq">QQ 音乐逐字</option>
-                <option value="kugou">酷狗音乐逐字</option>
-              </select>
+              <Select value={advancedLyricConfig.lyricSources || 'amll,qq,kugou'} onValueChange={(value) => updateImmersive({ lyricSources: value })}>
+                <SelectTrigger aria-label="歌词数据来源"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="amll,qq,kugou">自动推荐：时长匹配 + 逐字优先</SelectItem>
+                  <SelectItem value="netease">网易云原始歌词</SelectItem>
+                  <SelectItem value="amll">AMLL TTML 逐字</SelectItem>
+                  <SelectItem value="qq">QQ 音乐逐字</SelectItem>
+                  <SelectItem value="kugou">酷狗音乐逐字</SelectItem>
+                </SelectContent>
+              </Select>
             </SettingRow>
             {currentMode === 'talk' ? (
               <>
@@ -920,14 +922,17 @@ export default function Settings() {
         <h3 className="settings-title"><Volume2 size={18} />音频输出与解析</h3>
         <div className="settings-content">
           <SettingRow label="音质偏好选择" hint="优先获取无损高码率音频流">
-            <select className="setting-select" value={audioQuality} onChange={(e) => setAudioQuality(e.target.value)}>
-              <option value="standard">标准音质 (128kbps)</option>
-              <option value="higher">较高音质 (192kbps)</option>
-              <option value="exhigh">极高音质 (320kbps)</option>
-              <option value="lossless">无损音质 (FLAC)</option>
-              <option value="hires">Hi-Res 高解析母带</option>
-              <option value="jymaster">超清母带 (Master)</option>
-            </select>
+            <Select value={audioQuality} onValueChange={setAudioQuality}>
+              <SelectTrigger aria-label="音质偏好选择"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="standard">标准音质 (128kbps)</SelectItem>
+                <SelectItem value="higher">较高音质 (192kbps)</SelectItem>
+                <SelectItem value="exhigh">极高音质 (320kbps)</SelectItem>
+                <SelectItem value="lossless">无损音质 (FLAC)</SelectItem>
+                <SelectItem value="hires">Hi-Res 高解析母带</SelectItem>
+                <SelectItem value="jymaster">超清母带 (Master)</SelectItem>
+              </SelectContent>
+            </Select>
           </SettingRow>
         </div>
       </div>
@@ -1137,12 +1142,12 @@ export default function Settings() {
                 <p className="settings-desc">如扫码受限，可粘贴包含 MUSIC_U 的 Cookie 字符串建立长效登录。</p>
                 <textarea className="settings-textarea" rows={3} value={cookieInput} onChange={(e) => setCookieInput(e.target.value)} placeholder="MUSIC_U=xxxxx; __csrf=yyyy..." />
                 <button className="setting-btn" style={{ marginTop: 8 }} onClick={async () => {
-                  if (!cookieInput.trim()) return alert('请输入有效 Cookie 字符串');
+                  if (!cookieInput.trim()) return toast.error('请输入有效 Cookie 字符串');
                   cookieInput.split(';').forEach(item => {
                     const idx = item.indexOf('=');
                     if (idx !== -1) document.cookie = `${item.substring(0, idx).trim()}=${item.substring(idx + 1).trim()}; path=/; max-age=31536000`;
                   });
-                  alert('Cookie 导入成功！正在同步验证…');
+                  toast.success('Cookie 导入成功，正在同步验证…');
                   setCookieInput('');
                 }}>导入 Cookie 验证登录</button>
               </div>
@@ -1181,10 +1186,10 @@ export default function Settings() {
               reader.onload = () => {
                 try {
                   importProfile(reader.result);
-                  alert('配置导入成功，即将刷新应用！');
+                  toast.success('配置导入成功，即将刷新应用');
                   window.location.reload();
                 } catch (err) {
-                  alert('配置文件格式错误，导入失败');
+                  toast.error('配置文件格式错误，导入失败');
                 }
               };
               reader.readAsText(file);
@@ -1213,50 +1218,54 @@ export default function Settings() {
   return (
     <div className={`view-container ${layoutMode === 'classic' ? 'classic-settings-view' : 'modern-settings-view'}`}>
       <div className={`settings-shell ${layoutMode === 'classic' ? 'classic-layout' : 'modern-layout'}`}>
+        <Tabs value={activeTab} onValueChange={(value) => { if (value) setActiveTab(value); }}>
         {layoutMode === 'classic' ? (
           /* Classic Top Navigation Bar */
           <nav className="settings-classic-nav" aria-label="设置导航">
+            <TabsList bare asChild>
             <div className="settings-classic-tabs">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.key;
                 return (
-                  <button
+                  <TabsTrigger
                     key={tab.key}
-                    type="button"
+                    value={tab.key}
                     className={`settings-classic-tab-btn ${isActive ? 'active' : ''}`}
-                    onClick={() => setActiveTab(tab.key)}
                   >
                     <Icon size={16} />
                     <span>{tab.label}</span>
                     {isActive && <div className="settings-classic-tab-indicator" />}
-                  </button>
+                  </TabsTrigger>
                 );
               })}
             </div>
+            </TabsList>
           </nav>
         ) : (
           /* Modern Left Sidebar Navigation (scrollbar-free) */
+          <TabsList bare asChild>
           <aside className="settings-tabs">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.key;
               return (
-                <button
+                <TabsTrigger
                   key={tab.key}
-                  type="button"
+                  value={tab.key}
                   className={isActive ? 'active' : ''}
-                  onClick={() => setActiveTab(tab.key)}
                 >
                   <div className={`tab-icon-badge ${tab.badge}`}>
                     <Icon size={15} />
                   </div>
                   <span>{tab.label}</span>
-                </button>
+                </TabsTrigger>
               );
             })}
           </aside>
+          </TabsList>
         )}
+        </Tabs>
         <main className="settings-panel">{renderActiveTab()}</main>
       </div>
       <LyricExportModal

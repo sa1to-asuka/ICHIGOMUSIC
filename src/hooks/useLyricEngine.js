@@ -208,6 +208,20 @@ export function useLyricEngine(songId, audioElement, songMeta = null, lyricSourc
     return Math.max(0, Math.min(100, ((t - word.startSec) / word.durationSec) * 100));
   };
 
+  // Live updates from the lyric adjuster (per-line edits / manual replacement).
+  useEffect(() => {
+    const handleLyricsUpdate = (event) => {
+      const detail = event?.detail;
+      if (!detail || String(detail.songId) !== String(songId) || !Array.isArray(detail.lines)) return;
+      setLyrics(detail.lines);
+      engineRef.current.lyrics = detail.lines;
+      engineRef.current.activeIndex = -1;
+      setActiveLineIndex(-1);
+    };
+    window.addEventListener('ichigo-lyrics-updated', handleLyricsUpdate);
+    return () => window.removeEventListener('ichigo-lyrics-updated', handleLyricsUpdate);
+  }, [songId]);
+
   // Fetch and parse lyrics
   useEffect(() => {
     if (!songId) {
@@ -233,6 +247,26 @@ export function useLyricEngine(songId, audioElement, songMeta = null, lyricSourc
     setIsLoading(true);
 
     const fetchLyrics = async () => {
+      const overrideKey = `ichigo_lyrics_override_${songId}`;
+      try {
+        const overrideRaw = localStorage.getItem(overrideKey);
+        if (overrideRaw) {
+          const overrideLines = JSON.parse(overrideRaw);
+          if (Array.isArray(overrideLines) && overrideLines.length > 0) {
+            if (isMounted) {
+              setLyrics(overrideLines);
+              engineRef.current.lyrics = overrideLines;
+              engineRef.current.activeIndex = -1;
+              setActiveLineIndex(-1);
+              setIsLoading(false);
+            }
+            return;
+          }
+        }
+      } catch (error) {
+        localStorage.removeItem(overrideKey);
+      }
+
       const cacheKey = `lyrics_cache_v12_${songId}_${lyricSources || 'auto'}_${durationMs || 0}`;
       if (lyricCacheEnabled && window.electronAPI?.readLyricCache) {
         const fileCached = await window.electronAPI.readLyricCache({

@@ -9,6 +9,8 @@
 ## 核心特性
 
 - **双布局架构**：经典侧边导航与现代流线毛玻璃卡片布局自由切换。
+- **编辑感排版**：Newsreader 衬线标题 + Instrument Sans 界面字体，默认「暖纸」主题与自托管字体，离线启动也保持一致排版。
+- **命令面板**：`Ctrl / Cmd + K` 快速搜索当前队列并执行播放、收藏、歌词、主题与页面跳转。
 - **全景沉浸模式**：提供 7 款各具特色的全屏动效舞台（常规逐字、PV 动效、气泡、云阶、空间画布、黑胶与胶片模式）。
 - **悬浮桌面歌词**：三行滚动排版、主歌词逐字动画、翻译歌词联动、文字辉光特效与鼠标穿透锁定。
 - **智能心动模式**：基于红心曲库真随机混洗，并以 2:1 黄金比例动态穿插智能推荐好歌。
@@ -112,7 +114,7 @@ ICHIGOMusic 提供两套精心打磨的界面交互形态，可在设置中随�
 
 - **主题配色**：支持暗色/亮色模式智能跟随系统，内置多款定制主题色调。
 - **高解析度音质**：支持标准、极高、无损 (FLAC)、Hi-Res 等多档音质切换。
-- **智能本地存储**：支持自定义音频、封面及歌词的本地缓存路径与容量上限，提供一键清理管理。
+- **智能本地存储**：支持自定义音频、封面及歌词的本地缓存路径与容量上限，提供一键清理管理；本地曲库可读取 ID3/封面/时长并导入导出 M3U 播放列表。
 - **系统级媒体集成**：支持 Windows 全局媒体快捷键、任务栏缩略图控制与托盘快速切歌。
 
 ---
@@ -120,7 +122,7 @@ ICHIGOMusic 提供两套精心打磨的界面交互形态，可在设置中随�
 ## 快速上手
 
 ### 下载安装
-前往 Releases 页面下载最新的 Windows 安装包（如 `ICHIGOMusic Setup 1.9.1.exe`），双击运行即可完成安装。
+前往 [Releases](https://github.com/sa1to-asuka/ICHIGOMUSIC/releases) 页面下载最新的 Windows 安装包（如 `ICHIGOMusic Setup 3.4.0.exe`），双击运行即可完成安装。
 
 ### 本地构建与运行
 
@@ -130,8 +132,8 @@ ICHIGOMusic 提供两套精心打磨的界面交互形态，可在设置中随�
 
 #### 1. 克隆仓库并安装依赖
 ```bash
-git clone https://github.com/lyb82ndkf-lab/ichigo-music.git
-cd ichigomusic
+git clone https://github.com/sa1to-asuka/ICHIGOMUSIC.git
+cd ICHIGOMUSIC
 npm install
 ```
 
@@ -152,6 +154,29 @@ npm run electron:build
 
 ---
 
+## 开源致谢
+
+ICHIGOMusic 的界面、歌词、音源与视觉能力建立在许多开源项目之上。特别感谢以下项目及其贡献者：
+
+- [NeteaseCloudMusicApiEnhanced/api-enhanced](https://github.com/NeteaseCloudMusicApiEnhanced/api-enhanced) —— 内嵌的网易云音乐 API 服务
+- [Binaryify/NeteaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi) —— 网易云音乐 API 上游项目
+- [UnblockNeteaseMusic/server](https://github.com/UnblockNeteaseMusic/server) —— 多平台解灰引擎
+- [SPlayer](https://github.com/SPlayer-Dev/SPlayer) —— UNM-Server 适配与播放器交互参考
+- [folia-major](https://github.com/chthollyphile/folia-major) —— 莫奈歌词布局、逐字歌词与多源歌词匹配
+- [amll-dev/amll-ttml-db](https://github.com/amll-dev/amll-ttml-db) —— AMLL TTML 逐词歌词库
+- [852wa/JIZURA](https://github.com/852wa/JIZURA) —— JIZURA 文字 PV 引擎
+- [DanteAlighieri13210914/pv-tool](https://github.com/DanteAlighieri13210914/pv-tool) —— PV 可视化特效引擎
+- [Kuroshiro](https://github.com/hexenq/kuroshiro) / [kuromoji.js](https://github.com/takuyaa/kuromoji.js) —— 日语歌词注音与分词
+- [React](https://github.com/facebook/react)、[Electron](https://github.com/electron/electron)、[Vite](https://github.com/vitejs/vite)、[PixiJS](https://github.com/pixijs/pixijs)、[GSAP](https://gsap.com/)、[Radix UI](https://github.com/radix-ui/primitives)、[Lucide](https://github.com/lucide-icons/lucide) 等前端与桌面技术栈
+- [Newsreader](https://github.com/productiontype/Newsreader)、[Instrument Sans](https://github.com/Instrument/instrument-sans)、[JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) —— 自托管界面字体（OFL-1.1）
+- [sonner](https://github.com/emilkowalski/sonner) —— 全局 Toast 通知
+
+完整清单、许可证说明及每个项目在本项目中的使用位置，请见 [ACKNOWLEDGEMENTS.md](./ACKNOWLEDGEMENTS.md)。
+
+> 各上游项目遵循其原始许可证；其中 PV Tool 为非商业许可，folia-major / SPlayer / netease-report-listen-song 为 AGPL-3.0，UnblockNeteaseMusic 为 LGPL-3.0。分发或商用前请分别确认授权。
+
+---
+
 ## 开源协议
 
-本项目遵循 MIT License 开源协议。所有音乐及相关元数据版权均归网易云音乐及相关版权方所有，本项目仅供个人学习与技术交流使用。
+本项目遵循 MIT License 开源协议。所有音乐及相关元数据版权均归网易云音乐及相关版权方所有，本项目仅供个人学习与技术交流使用。第三方组件仍遵循各自许可证，详见 [ACKNOWLEDGEMENTS.md](./ACKNOWLEDGEMENTS.md)。

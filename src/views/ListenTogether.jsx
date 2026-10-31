@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Copy, LogIn, LogOut, MessageCircle, Play, Radio, Send, Share2, Users, UserPlus, X } from 'lucide-react';
 import CachedCover from '../components/CachedCover';
+import { usePlaybackProgress } from '../context/AppContext';
 
 const artistName = (song) => song?.ar?.map(item => item.name).join(' / ') || song?.artists?.map(item => item.name).join(' / ') || song?.artist || '未知艺术家';
 
@@ -85,7 +86,8 @@ function ChatPanel({ listenState }) {
   );
 }
 
-export default function ListenTogether({ listenState, currentSong, lyrics = [], currentTime = 0 }) {
+export default function ListenTogether({ listenState, currentSong, lyrics = [] }) {
+  const { progress } = usePlaybackProgress();
   const { roomId, isHost, roomUsers, syncStatus, message, exitRoom, getShareUrl } = listenState;
   const [copied, setCopied] = useState(false);
   const connectionLabel = syncStatus === 'error' ? '连接不稳定' : isHost ? '房主同步中' : '已连接';
@@ -99,11 +101,11 @@ export default function ListenTogether({ listenState, currentSong, lyrics = [], 
     if (!Array.isArray(lyrics) || lyrics.length === 0) return null;
     let active = null;
     for (const line of lyrics) {
-      if (Number(line?.time || 0) <= Number(currentTime || 0)) active = line;
+      if (Number(line?.time || 0) <= Number(progress || 0)) active = line;
       else break;
     }
     return active;
-  }, [lyrics, currentTime]);
+  }, [lyrics, progress]);
 
   return (
     <div className="listen-together-page">
@@ -121,11 +123,11 @@ export default function ListenTogether({ listenState, currentSong, lyrics = [], 
             width: '56px',
             height: '56px',
             borderRadius: '14px',
-            background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+            background: 'var(--primary)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 8px 20px rgba(16, 185, 129, 0.35)',
+            boxShadow: '0 8px 20px color-mix(in srgb, var(--primary) 24%, transparent)',
             flexShrink: 0
           }}>
             <Radio size={28} color="#fff" />

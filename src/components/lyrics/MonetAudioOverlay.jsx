@@ -30,7 +30,9 @@ export default function MonetAudioOverlay({ isPlaying, primaryColor, animationMo
   const canvasRef = useRef(null);
   
   const requestedFps = Number(visualizerFps);
-  const fps = requestedFps === 0 ? 0 : Math.min(120, Math.max(24, Number.isFinite(requestedFps) ? requestedFps : 30));
+  const reducedMotion = typeof document !== 'undefined' && document.body.classList.contains('reduced-motion');
+  const maxFps = reducedMotion ? 30 : 60;
+  const fps = requestedFps === 0 ? 0 : Math.min(maxFps, Math.max(24, Number.isFinite(requestedFps) ? requestedFps : 30));
   const isStreamerMode = animationMode === 'streamer';
 
   const scaleRef = useRef(1.0);

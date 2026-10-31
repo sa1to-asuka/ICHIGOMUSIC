@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { useApp } from '../context/AppContext';
 import { api, getCachedData } from '../utils/api';
 import { Play } from 'lucide-react';
+import { contrastInk } from '../utils/colorContrast';
 
 export default function Discover() {
   const { navigateTo, playSong } = useApp();
@@ -28,19 +30,19 @@ export default function Discover() {
       try {
         const [bannerResult, playlistResult, personalResult] = await Promise.allSettled([
           api.getBanners(),
-          api.search('??', 1000, 12, 0).catch(() => ({ result: { playlists: [] } })),
+          api.getTopPlaylists(12).catch(() => ({ playlists: [] })),
           api.getPersonalized(12)
         ]);
 
         const bannerRes = bannerResult.status === 'fulfilled' ? bannerResult.value : { banners: [] };
-        const playlistRes = playlistResult.status === 'fulfilled' ? playlistResult.value : { result: { playlists: [] } };
+        const playlistRes = playlistResult.status === 'fulfilled' ? playlistResult.value : { playlists: [] };
         const personalRes = personalResult.status === 'fulfilled' ? personalResult.value : { result: [] };
 
         if (!controller.signal.aborted) {
           setBanners((bannerRes.banners || []).slice(0, 6));
           const list = Array.isArray(personalRes.result) && personalRes.result.length > 0
             ? personalRes.result
-            : (playlistRes.result?.playlists || []);
+            : (playlistRes.playlists || []);
           setRecommendPlaylists(list);
         }
       } catch (err) {
@@ -72,11 +74,11 @@ export default function Discover() {
       if (songs.length > 0) {
         playSong(songs[0], songs);
       } else {
-        alert('该歌单暂无歌曲！');
+        toast.info('该歌单暂无歌曲');
       }
     } catch (err) {
       console.error(err);
-      alert('加载歌单歌曲失败');
+      toast.error('加载歌单歌曲失败');
     }
   };
 
@@ -119,7 +121,7 @@ export default function Discover() {
                   bottom: '12px',
                   right: '16px',
                   background: banner.titleColor || 'var(--primary)',
-                  color: 'var(--text-active)',
+                  color: banner.titleColor ? contrastInk(banner.titleColor) : 'var(--primary-text, #ffffff)',
                   fontSize: '11px',
                   padding: '4px 10px',
                   borderRadius: 'var(--border-radius-md)',
@@ -152,7 +154,7 @@ export default function Discover() {
       )}
 
       {/* Recommended Playlists Header */}
-      <h2 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--type-h2-size, 24px)', fontWeight: 'var(--weight-semibold, 600)', lineHeight: 'var(--type-h2-line, 1.25)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
         推荐歌单 <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-muted)' }}>🍓 探索属于你的节奏</span>
       </h2>
 

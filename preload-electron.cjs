@@ -76,6 +76,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   convertFuriganaBatch: (lines) => ipcRenderer.invoke('furigana:convert-batch', lines),
   convertFuriganaText: (text) => ipcRenderer.invoke('furigana:convert-text', text),
   saveLyricFile: (data) => ipcRenderer.invoke('save-lyric-file', data),
+  saveTextFile: (data) => ipcRenderer.invoke('save-text-file', data),
+  openTextFile: (data) => ipcRenderer.invoke('open-text-file', data),
   getDesktopSources: (opts) => ipcRenderer.invoke('desktop-capturer-get-sources', opts),
 
   // Durable C-Drive Listening History Vault IPC

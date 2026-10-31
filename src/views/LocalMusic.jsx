@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useApp } from '../context/AppContext';
-import { FolderOpen, Music, Play, RefreshCw, Search, Plus, Trash2, HardDrive, FileAudio } from 'lucide-react';
+import { FolderOpen, Music, Play, RefreshCw, Search, Plus, Trash2, HardDrive, FileAudio, Upload, Download } from 'lucide-react';
 
 export default function LocalMusic() {
   const { playSong, setPlaylist, currentSong, isPlaying } = useApp();
@@ -20,7 +21,7 @@ export default function LocalMusic() {
 
   const handleSelectFolder = async () => {
     if (!window.electronAPI?.selectLocalMusicFolder) {
-      alert('本地音乐扫描仅在桌面客户端环境下可用。');
+      toast.info('本地音乐扫描仅在桌面客户端环境下可用');
       return;
     }
     const selected = await window.electronAPI.selectLocalMusicFolder();
@@ -41,7 +42,7 @@ export default function LocalMusic() {
       localStorage.setItem('ichigo_local_music_songs', JSON.stringify(scanned || []));
     } catch (err) {
       console.warn('Scan failed:', err);
-      alert('扫描失败：' + (err.message || '未知错误'));
+      toast.error('扫描失败：' + (err.message || '未知错误'));
     } finally {
       setScanning(false);
     }
@@ -56,6 +57,69 @@ export default function LocalMusic() {
   const handlePlaySong = (song) => {
     setPlaylist(filteredSongs);
     playSong(song, filteredSongs);
+  };
+
+  const handleExportM3u = async () => {
+    if (!window.electronAPI?.saveTextFile) {
+      toast.info('导出功能仅在桌面客户端可用');
+      return;
+    }
+    if (!filteredSongs.length) {
+      toast.info('没有可导出的歌曲');
+      return;
+    }
+    const lines = ['#EXTM3U'];
+    filteredSongs.forEach((song) => {
+      const seconds = Math.round((song.durationMs || song.dt || 0) / 1000);
+      const artist = song.artist || song.ar?.map((item) => item.name).join(' / ') || '未知歌手';
+      lines.push(`#EXTINF:${seconds},${artist} - ${song.name}`);
+      lines.push(song.localPath || String(song.url || '').replace(/^file:\/\/\//, ''));
+    });
+    const result = await window.electronAPI.saveTextFile({
+      title: '导出 M3U 播放列表',
+      defaultFilename: 'ichigomusic-local.m3u8',
+      content: lines.join('\n'),
+      filters: [
+        { name: 'M3U 播放列表 (*.m3u8)', extensions: ['m3u8', 'm3u'] },
+        { name: '所有文件 (*.*)', extensions: ['*'] }
+      ]
+    });
+    if (result?.success) toast.success(`已导出 ${filteredSongs.length} 首歌曲`);
+    else if (!result?.canceled) toast.error('导出失败，请稍后重试');
+  };
+
+  const handleImportM3u = async () => {
+    if (!window.electronAPI?.openTextFile) {
+      toast.info('导入功能仅在桌面客户端可用');
+      return;
+    }
+    const result = await window.electronAPI.openTextFile({
+      title: '导入 M3U 播放列表',
+      filters: [
+        { name: 'M3U 播放列表 (*.m3u8)', extensions: ['m3u8', 'm3u'] },
+        { name: '所有文件 (*.*)', extensions: ['*'] }
+      ]
+    });
+    if (!result?.success) {
+      if (!result?.canceled) toast.error('导入失败，请检查文件格式');
+      return;
+    }
+    const baseDir = String(result.filePath || '').replace(/[\\/][^\\/]+$/, '');
+    const normalize = (value) => String(value || '').replace(/\\/g, '/').toLowerCase();
+    const byPath = new Map(songs.map((song) => [normalize(song.localPath), song]));
+    const paths = String(result.content || '')
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith('#'))
+      .map((line) => (/^[a-zA-Z]:[\\/]/.test(line) || line.startsWith('/') ? line : `${baseDir}/${line}`));
+    const matched = paths.map((line) => byPath.get(normalize(line))).filter(Boolean);
+    if (!matched.length) {
+      toast.error('没有找到与曲库匹配的歌曲');
+      return;
+    }
+    setPlaylist(matched);
+    playSong(matched[0], matched);
+    toast.success(`已导入 ${matched.length} 首歌曲`);
   };
 
   const formatSize = (bytes) => {
@@ -141,7 +205,7 @@ export default function LocalMusic() {
                 borderRadius: '10px',
                 border: 'none',
                 background: 'var(--primary)',
-                color: '#fff',
+                color: 'var(--primary-text, #fff)',
                 cursor: 'pointer',
                 fontSize: '13px',
                 fontWeight: 600,
@@ -155,6 +219,50 @@ export default function LocalMusic() {
               {scanning ? '正在扫描...' : '刷新曲库'}
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={handleImportM3u}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '10px',
+              border: '1px solid var(--card-border)',
+              background: 'var(--glass-bg)',
+              color: 'var(--text-main)',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <Upload size={16} />
+            导入 M3U
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExportM3u}
+            disabled={!songs.length}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '10px',
+              border: '1px solid var(--card-border)',
+              background: 'var(--glass-bg)',
+              color: 'var(--text-main)',
+              cursor: songs.length ? 'pointer' : 'not-allowed',
+              opacity: songs.length ? 1 : 0.5,
+              fontSize: '13px',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <Download size={16} />
+            导出 M3U
+          </button>
         </div>
       </div>
 
@@ -176,7 +284,7 @@ export default function LocalMusic() {
                 borderRadius: '24px',
                 border: 'none',
                 background: 'var(--primary)',
-                color: '#fff',
+                color: 'var(--primary-text, #fff)',
                 fontSize: '13px',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -353,7 +461,7 @@ export default function LocalMusic() {
               borderRadius: '8px',
               border: 'none',
               background: 'var(--primary)',
-              color: '#fff',
+              color: 'var(--primary-text, #fff)',
               cursor: 'pointer',
               fontSize: '13px',
               fontWeight: 600

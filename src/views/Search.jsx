@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { api } from '../utils/api';
 import { Search as SearchIcon, Play, Trash2, Clock, Music, FolderHeart, Award, User, Video, Heart, Radio } from 'lucide-react';
+import SongContextMenu from '../components/SongContextMenu';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui';
 
 const tabs = [
   { key: 'songs', type: 1, name: '单曲', icon: Music },
@@ -154,23 +156,22 @@ export default function Search() {
 
       {/* Tabs */}
       {hasSearched && (
-        <div className="search-tabs">
-          {tabs.map(tab => {
-            const Icon = tab.icon;
-            const isActive = activeTab.key === tab.key;
-            return (
-              <button
-                key={tab.key}
-                className={`search-tab-btn ${isActive ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-              >
-                <Icon size={14} />
-                <span>{tab.name}</span>
-              </button>
-            );
-          })}
-        </div>
+        <Tabs
+          value={activeTab.key}
+          onValueChange={(key) => setActiveTab(tabs.find(tab => tab.key === key) || tabs[0])}
+        >
+          <TabsList className="search-tabs">
+            {tabs.map(tab => {
+              const Icon = tab.icon;
+              return (
+                <TabsTrigger key={tab.key} value={tab.key}>
+                  <Icon size={14} />
+                  <span>{tab.name}</span>
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+        </Tabs>
       )}
 
       {/* Landing State: Hot Queries & History */}
@@ -272,7 +273,8 @@ export default function Search() {
                   const album = getSongAlbum(song);
                   const isLiked = likedSongIds?.has(song.id) || likedSongIds?.has(String(song.id)) || likedSongIds?.has(Number(song.id));
                   return (
-                  <tr key={song.id} className="song-row" onDoubleClick={() => playSong(song, safeSongs)}>
+                  <SongContextMenu key={song.id} song={song} queue={safeSongs}>
+                  <tr className="song-row" onDoubleClick={() => playSong(song, safeSongs)}>
                     <td>
                       <div className="song-title-cell">
                         <button
@@ -332,6 +334,7 @@ export default function Search() {
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{formatDuration(song.dt || song.duration || song.durationMs || 0)}</td>
                   </tr>
+                  </SongContextMenu>
                   );
                 })}
               </tbody>

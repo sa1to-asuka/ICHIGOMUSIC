@@ -117,7 +117,7 @@ export default function MVPlayer() {
       {/* Details metadata */}
       {mvDetail && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <h1 style={{ fontFamily: 'var(--font-title)', fontSize: '24px', fontWeight: 800, color: 'var(--text-active)' }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--type-h2-size, 24px)', fontWeight: 'var(--weight-semibold, 600)', color: 'var(--text-active)', lineHeight: 'var(--type-h2-line, 1.25)' }}>
             {mvDetail.name}
           </h1>
           

@@ -1,5 +1,6 @@
 // src/components/ListeningHeatmap.jsx - Listening Heatmap and Calendar Component
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { toast } from 'sonner';
 import { useApp } from '../context/AppContext';
 import {
   Calendar, Flame, Disc, Music, Play, RefreshCw, ChevronLeft, ChevronRight,
@@ -42,10 +43,10 @@ export default function ListeningHeatmap() {
         setSyncNotice(`✅ 成功导入并合并 ${result.count} 首足迹记录（新增 ${result.newAdded} 首）`);
         loadData();
       } else {
-        alert(`导入失败: ${result.message}`);
+        toast.error(`导入失败：${result.message}`);
       }
     } catch (err) {
-      alert(`文件读取异常: ${err.message}`);
+      toast.error(`文件读取异常：${err.message}`);
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = '';
       setTimeout(() => setSyncNotice(''), 4000);
@@ -940,7 +941,7 @@ export default function ListeningHeatmap() {
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 800, padding: '2px 8px', borderRadius: '6px', background: 'var(--primary)', color: '#ffffff' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 800, padding: '2px 8px', borderRadius: '6px', background: 'var(--primary)', color: 'var(--primary-text, #ffffff)' }}>
                     当日最爱单曲
                   </span>
                   <span style={{ fontSize: '12px', color: 'var(--text-muted, #71717a)' }}>

@@ -1,0 +1,104 @@
+/* ==========================================================================
+   Typography roles and global focus treatment
+   Consumes 02-tokens.css. Loaded after 03-reset.css so the roles win over
+   the bare element defaults.
+   ========================================================================== */
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  font-weight: var(--weight-regular);
+  letter-spacing: -0.003em;
+  text-rendering: optimizeLegibility;
+}
+
+:where(h1, h2, h3, h4, .type-display, .type-title) {
+  font-family: var(--font-display);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.015em;
+}
+
+/* Native controls otherwise fall back to the UA default (Arial on Windows). */
+:where(button, input, select, textarea, optgroup) {
+  font-family: var(--font-body);
+}
+
+.type-display {
+  font-family: var(--font-display);
+  font-size: var(--type-display-size);
+  line-height: var(--type-display-line);
+  font-weight: var(--type-display-weight);
+  letter-spacing: -0.02em;
+}
+
+.type-title {
+  font-family: var(--font-display);
+  font-size: var(--type-h1-size);
+  line-height: var(--type-h1-line);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.015em;
+}
+
+.type-heading {
+  font-family: var(--font-body);
+  font-size: var(--type-h3-size);
+  line-height: var(--type-h3-line);
+  font-weight: var(--weight-semibold);
+}
+
+.type-body {
+  font-family: var(--font-body);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  font-weight: var(--weight-regular);
+}
+
+.type-label {
+  font-family: var(--font-body);
+  font-size: var(--type-ui-size);
+  line-height: var(--type-ui-line);
+  font-weight: var(--weight-medium);
+}
+
+.type-small {
+  font-family: var(--font-body);
+  font-size: var(--type-small-size);
+  line-height: var(--type-small-line);
+  font-weight: var(--weight-medium);
+}
+
+.type-caption {
+  font-family: var(--font-body);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.type-mono,
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+.type-mono {
+  font-size: var(--type-mono-size);
+  line-height: var(--type-mono-line);
+  font-weight: var(--weight-medium);
+}
+
+/* Visible keyboard focus for every interactive element. Component-level
+   styles may add a ring of their own; they must not remove this one. */
+:where(a, button, input, select, textarea, summary, [role='button'], [role='switch'], [role='tab'], [tabindex]):focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(*) {
+    scroll-behavior: auto !important;
+  }
+}

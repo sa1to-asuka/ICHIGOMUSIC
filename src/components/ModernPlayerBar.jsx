@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { toast } from 'sonner';
+import { useApp, usePlaybackProgress } from '../context/AppContext';
 import CachedCover from './CachedCover';
 import {
   Play, Pause, SkipBack, SkipForward, Heart, Shuffle, Repeat, Repeat1,
@@ -27,11 +28,12 @@ function formatTime(time) {
 
 export default function ModernPlayerBar({ onToggleLyrics, lyrics = [], playbackLocked = false }) {
   const {
-    currentSong, isPlaying, togglePlay, playNext, playPrev, progress, duration,
+    currentSong, isPlaying, togglePlay, playNext, playPrev,
     audioElement, likedSongIds, toggleLike, playMode, setPlayMode, isQueueOpen,
     setIsQueueOpen, isEqualizerOpen, setIsEqualizerOpen, audioConfig, volume, setVolume, audioQuality, setAudioQuality,
     desktopLyricsConfig, navigateTo
   } = useApp();
+  const { progress, duration } = usePlaybackProgress();
   const [prevVolume, setPrevVolume] = useState(0.8);
   const [isSeeking, setIsSeeking] = useState(false);
   const [progressPreview, setProgressPreview] = useState(null);
@@ -171,8 +173,8 @@ export default function ModernPlayerBar({ onToggleLyrics, lyrics = [], playbackL
               <DropdownMenuContent side="top" align="center" sideOffset={14}><DropdownMenuRadioGroup value={audioQuality} onValueChange={setAudioQuality}>{QUALITY_OPTIONS.map((option) => <DropdownMenuRadioItem key={option.key} value={option.key}>{option.label}</DropdownMenuRadioItem>)}</DropdownMenuRadioGroup></DropdownMenuContent>
             </DropdownMenu>
             <Tooltip content="播放队列"><IconButton className={`ctrl-btn ${isQueueOpen ? 'is-active' : ''}`} label="播放队列" onClick={() => setIsQueueOpen(!isQueueOpen)} disabled={playbackLocked}><ListMusic size={18} /></IconButton></Tooltip>
-            <Tooltip content="桌面歌词"><IconButton className={`ctrl-btn modern-desktop-lyrics ${desktopLyricsConfig?.show ? 'is-active' : ''}`} label="桌面歌词" onClick={() => window.electronAPI ? window.electronAPI.toggleDesktopLyrics() : alert('桌面歌词功能仅在桌面客户端可用')}><MonitorSpeaker size={16} /></IconButton></Tooltip>
-            <Tooltip content="灵动悬浮胶囊 / 桌面迷你播放器"><IconButton className="ctrl-btn" label="桌面迷你播放器" onClick={() => window.electronAPI ? window.electronAPI.toggleMiniPlayer() : alert('桌面迷你播放器仅在桌面客户端可用')}><AppWindow size={16} /></IconButton></Tooltip>
+            <Tooltip content="桌面歌词"><IconButton className={`ctrl-btn modern-desktop-lyrics ${desktopLyricsConfig?.show ? 'is-active' : ''}`} label="桌面歌词" onClick={() => window.electronAPI ? window.electronAPI.toggleDesktopLyrics() : toast.info('桌面歌词功能仅在桌面客户端可用')}><MonitorSpeaker size={16} /></IconButton></Tooltip>
+            <Tooltip content="灵动悬浮胶囊 / 桌面迷你播放器"><IconButton className="ctrl-btn" label="桌面迷你播放器" onClick={() => window.electronAPI ? window.electronAPI.toggleMiniPlayer() : toast.info('桌面迷你播放器仅在桌面客户端可用')}><AppWindow size={16} /></IconButton></Tooltip>
             <Popover open={volumePopoverOpen} onOpenChange={(open) => { clearVolumeCloseTimer(); setVolumePopoverOpen(open); }}>
               <PopoverAnchor asChild>
                 <IconButton

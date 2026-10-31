@@ -35,14 +35,16 @@ function MonetPosterLayout({
   const enableDecor = advancedLyricConfig?.showDecor === true && !isKashiMode;
   const fontScale = (advancedLyricConfig?.fontSize || 24) / 24;
   const fontFamilyMap = {
-    Inter: '"Inter", "Noto Sans SC", sans-serif',
-    Outfit: '"Outfit", "Noto Sans SC", sans-serif',
+    'Instrument Sans': '"Instrument Sans Variable", "Instrument Sans", "Noto Sans SC", sans-serif',
+    Newsreader: '"Newsreader Variable", "Newsreader", "Noto Serif SC", "Songti SC", serif',
+    Inter: '"Instrument Sans Variable", "Instrument Sans", "Noto Sans SC", sans-serif',
+    Outfit: '"Newsreader Variable", "Newsreader", "Noto Serif SC", "Songti SC", serif',
     'Noto Serif SC': '"Noto Serif SC", "Songti SC", serif',
     'Microsoft YaHei': '"Microsoft YaHei", "Noto Sans SC", sans-serif',
     KaiTi: '"KaiTi", "STKaiti", serif'
   };
-  const fontStack = fontFamilyMap[advancedLyricConfig?.fontFamily] || fontFamilyMap.Inter;
-  const titleFontStack = fontFamilyMap[advancedLyricConfig?.titleFontFamily] || fontFamilyMap.Outfit || fontFamilyMap.Inter;
+  const fontStack = fontFamilyMap[advancedLyricConfig?.fontFamily] || fontFamilyMap['Instrument Sans'];
+  const titleFontStack = fontFamilyMap[advancedLyricConfig?.titleFontFamily] || fontFamilyMap.Newsreader;
 
   const [manualScrollOffset, setManualScrollOffset] = useState(0);
   const scrollTimeoutRef = useRef(null);

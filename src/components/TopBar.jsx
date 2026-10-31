@@ -21,13 +21,11 @@ export default function TopBar() {
       <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <span className="brand-logo" style={{ fontSize: '20px', animation: 'float 4s ease-in-out infinite' }}>🍓</span>
         <span className="brand-name" style={{
-          fontFamily: 'var(--font-title)',
-          fontWeight: 800,
-          fontSize: '15px',
-          letterSpacing: '1px',
-          background: 'linear-gradient(to right, var(--text-active), var(--primary))',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent'
+          fontFamily: 'var(--font-body)',
+          fontWeight: 600,
+          fontSize: '13px',
+          letterSpacing: '0.08em',
+          color: 'var(--text-main)'
         }}>
           ICHIGOMusic
         </span>

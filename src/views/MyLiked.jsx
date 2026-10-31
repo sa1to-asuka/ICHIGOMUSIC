@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useApp } from '../context/AppContext';
 import { api } from '../utils/api';
 import { Play, Heart, LogIn, HeartPulse } from 'lucide-react';
+import SongContextMenu from '../components/SongContextMenu';
 
 const mergeSongs = (prev, next) => {
   const seen = new Set(prev.map((song) => String(song?.id ?? '')));
@@ -32,24 +34,20 @@ export default function MyLiked() {
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(100);
   const pendingPlayAllRef = useRef(false);
+  const tableRef = useRef(null);
+  const [scrollParent, setScrollParent] = useState(null);
 
   useEffect(() => {
-    setVisibleCount(100);
-  }, [likedPlaylistId]);
+    setScrollParent(tableRef.current?.closest('.view-scroll-container') || null);
+  }, [songs.length, loading]);
 
-  useEffect(() => {
-    const handleScroll = (event) => {
-      const target = event.target;
-      if (!target || !target.scrollHeight) return;
-      if (target.scrollHeight - target.scrollTop - target.clientHeight < 480) {
-        setVisibleCount((prev) => Math.min(songs.length, prev + 100));
-      }
-    };
-    window.addEventListener('scroll', handleScroll, true);
-    return () => window.removeEventListener('scroll', handleScroll, true);
-  }, [songs.length]);
+  const rowVirtualizer = useVirtualizer({
+    count: songs.length,
+    getScrollElement: () => scrollParent,
+    estimateSize: () => 48,
+    overscan: 10
+  });
 
   useEffect(() => {
     if (!user || !likedPlaylistId) {
@@ -154,6 +152,12 @@ export default function MyLiked() {
     );
   }
 
+  const virtualItems = rowVirtualizer.getVirtualItems();
+  const paddingTop = virtualItems.length > 0 ? virtualItems[0].start : 0;
+  const paddingBottom = virtualItems.length > 0
+    ? rowVirtualizer.getTotalSize() - virtualItems[virtualItems.length - 1].end
+    : 0;
+
   return (
     <div className="view-container">
       {/* Header Info */}
@@ -173,7 +177,7 @@ export default function MyLiked() {
           <Heart size={48} color="#ffffff" fill="#ffffff" style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.25))' }} />
         </div>
         <div>
-          <h1 style={{ fontFamily: 'var(--font-title)', fontSize: '28px', fontWeight: 800, color: 'var(--text-active)' }}>我喜欢的音乐</h1>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--type-h1-size, 32px)', fontWeight: 'var(--weight-semibold, 600)', color: 'var(--text-active)', lineHeight: 'var(--type-h1-line, 1.18)' }}>我喜欢的音乐</h1>
           <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span>用户: {user.nickname}</span>
             <span>·</span>
@@ -221,7 +225,7 @@ export default function MyLiked() {
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
-          <table className="songs-table" style={{ marginTop: 0 }}>
+          <table className="songs-table" ref={tableRef} style={{ marginTop: 0 }}>
             <thead>
               <tr>
                 <th style={{ width: '6%' }}>#</th>
@@ -232,11 +236,20 @@ export default function MyLiked() {
               </tr>
             </thead>
             <tbody>
-              {songs.slice(0, visibleCount).map((song, index) => {
+              {paddingTop > 0 && (
+                <tr aria-hidden="true">
+                  <td colSpan={5} style={{ height: paddingTop, padding: 0, border: 0 }} />
+                </tr>
+              )}
+              {virtualItems.map((virtualRow) => {
+                const song = songs[virtualRow.index];
+                const index = virtualRow.index;
                 const isLiked = likedSongIds.has(song.id);
                 return (
-                  <tr 
-                    key={song.id} 
+                  <SongContextMenu key={song.id} song={song} queue={songs}>
+                  <tr
+                    ref={rowVirtualizer.measureElement}
+                    data-index={index}
                     className="song-row"
                     onDoubleClick={() => playSong(song, songs)}
                   >
@@ -288,8 +301,14 @@ export default function MyLiked() {
                       </div>
                     </td>
                   </tr>
+                  </SongContextMenu>
                 );
               })}
+              {paddingBottom > 0 && (
+                <tr aria-hidden="true">
+                  <td colSpan={5} style={{ height: paddingBottom, padding: 0, border: 0 }} />
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

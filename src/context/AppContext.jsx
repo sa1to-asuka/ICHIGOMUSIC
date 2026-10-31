@@ -2,13 +2,16 @@ import React, { createContext, useCallback, useContext, useEffect, useLayoutEffe
 import { api, invalidateApiCache } from '../utils/api';
 import { DEFAULT_PROFILE, deepMerge, loadProfile, saveProfile } from '../utils/settingsProfile';
 import { extractWarmColdColors } from '../utils/colorExtractor';
+import { contrastInk } from '../utils/colorContrast';
 import { isLegacyFileMediaSource, isLocalMediaSource } from '../utils/audioSource';
 import { getPersistentSongCoverUrl, getSongCoverUrl, isLocalCoverUrl, isRemoteCoverUrl } from '../utils/songCover';
 import { recordPlayEvent, saveLocalLogs, getLocalLogs } from '../utils/listeningStats';
 import { appendRuntimeLog } from '../utils/runtimeLog';
+import { toast } from 'sonner';
 import pkg from '../../package.json';
 
 const AppContext = createContext();
+const PlaybackProgressContext = createContext({ progress: 0, duration: 0 });
 
 export const APP_VERSION = `v${pkg.version || '1.9.2'}`;
 
@@ -335,7 +338,10 @@ export function AppProvider({ children }) {
     document.body.classList.toggle('reduced-motion', renderingConfig.reducedMotion === true);
     document.body.classList.toggle('surface-flat', appearanceConfig.surfaceStyle === 'flat');
     const THEME_PALETTES = {
-      strawberry: { primary: '#ff3366', hover: '#e62055', glow: 'rgba(255, 51, 102, 0.35)', subtle: 'rgba(255, 51, 102, 0.12)', rgb: '255, 51, 102', text: '#ffffff' },
+      paper: activeMode === 'light'
+        ? { primary: '#b4552d', hover: '#9a4726', glow: 'rgba(180, 85, 45, 0.26)', subtle: 'rgba(180, 85, 45, 0.10)', rgb: '180, 85, 45', text: '#fffdf8' }
+        : { primary: '#e08a63', hover: '#d97a52', glow: 'rgba(224, 138, 99, 0.34)', subtle: 'rgba(224, 138, 99, 0.14)', rgb: '224, 138, 99', text: '#241a12' },
+      strawberry: { primary: '#ff3366', hover: '#e62055', glow: 'rgba(255, 51, 102, 0.35)', subtle: 'rgba(255, 51, 102, 0.12)', rgb: '255, 51, 102', text: '#241a12' },
       sakura: { primary: '#ff66b2', hover: '#e64d99', glow: 'rgba(255, 102, 178, 0.35)', subtle: 'rgba(255, 102, 178, 0.12)', rgb: '255, 102, 178', text: '#ffffff' },
       matcha: { primary: '#4caf50', hover: '#3d8b40', glow: 'rgba(76, 175, 80, 0.35)', subtle: 'rgba(76, 175, 80, 0.12)', rgb: '76, 175, 80', text: '#ffffff' },
       ocean: { primary: '#00b0ff', hover: '#0091ea', glow: 'rgba(0, 176, 255, 0.35)', subtle: 'rgba(0, 176, 255, 0.12)', rgb: '0, 176, 255', text: '#ffffff' },
@@ -363,6 +369,7 @@ export function AppProvider({ children }) {
       rootStyle.setProperty('--primary-glow', glow);
       rootStyle.setProperty('--primary-subtle', subtle);
       rootStyle.setProperty('--primary-text', text);
+      rootStyle.setProperty('--primary-ink', text);
       rootStyle.setProperty('--primary-rgb', rgb);
       rootStyle.setProperty('--accent-rgb', rgb);
 
@@ -382,6 +389,7 @@ export function AppProvider({ children }) {
       rootStyle.setProperty('--primary-glow', pal.glow);
       rootStyle.setProperty('--primary-subtle', pal.subtle);
       rootStyle.setProperty('--primary-text', pal.text);
+      rootStyle.setProperty('--primary-ink', pal.text);
       rootStyle.setProperty('--primary-rgb', pal.rgb);
       rootStyle.setProperty('--accent-rgb', pal.rgb);
 
@@ -417,7 +425,7 @@ export function AppProvider({ children }) {
         locked: desktopLyricsConfig.locked,
         fontSize: Number(desktopLyricsConfig.fontSize) || 36,
         translationSize: Number(desktopLyricsConfig.translationSize) || 20,
-        fontFamily: desktopLyricsConfig.fontFamily || 'Inter',
+        fontFamily: desktopLyricsConfig.fontFamily || 'Instrument Sans',
         fontWeight: Number(desktopLyricsConfig.fontWeight) || 700,
         boldFirstLine: desktopLyricsConfig.bold !== false,
         colorPreset: desktopLyricsConfig.colorPreset || 'strawberry',
@@ -495,7 +503,7 @@ export function AppProvider({ children }) {
     try {
       const data = window.electronAPI?.checkForUpdates
         ? await window.electronAPI.checkForUpdates()
-        : await fetch('https://api.github.com/repos/lyb82ndkf-lab/ichigo-music/releases/latest').then(res => {
+        : await fetch('https://api.github.com/repos/sa1to-asuka/ICHIGOMUSIC/releases/latest').then(res => {
           if (!res.ok) throw new Error('API request failed');
           return res.json().then(release => ({
             version: String(release.tag_name || '').replace(/^v/i, ''),
@@ -515,14 +523,14 @@ export function AppProvider({ children }) {
         return { hasUpdate: true, latestVersion: latestTag, ...browserAsset };
       } else {
         if (isManual) {
-          alert('当前已是最新版本！');;
+          toast.success('当前已是最新版本');
         }
         return { hasUpdate: false, latestVersion: latestTag || APP_VERSION };
       }
     } catch (err) {
       console.error('Failed to check for updates:', err);
       if (isManual) {
-        alert('检查更新失败，请稍后重试。');
+        toast.error('检查更新失败，请稍后重试');
       }
       return { error: true };
     }
@@ -728,9 +736,9 @@ export function AppProvider({ children }) {
   const toggleLike = useCallback(async (songId) => {
     const { user, likedSongIds } = stateRef.current;
     if (!user) {
-      alert('请先登录您的网易云账号！');
+      toast.error('请先登录网易云账号');
       navigateTo('settings');
-      return;
+      return false;
     }
     const isCurrentlyLiked = likedSongIds.has(songId)
       || likedSongIds.has(String(songId))
@@ -748,9 +756,11 @@ export function AppProvider({ children }) {
       // Playlist views cache their track lists for 5 minutes; drop them so a
       // freshly liked song shows up as soon as the list is reopened.
       invalidateApiCache('/playlist/');
+      return true;
     } catch (err) {
       console.error('Failed to toggle like:', err);
-      alert('操作失败，请重试');
+      toast.error('操作失败，请重试');
+      return false;
     }
   }, [navigateTo]);
 
@@ -1575,6 +1585,24 @@ export function AppProvider({ children }) {
     }
   }, [updateProfile, startHeartMode, setPlaylistAndPersist, setPlaylistIndexAndPersist]);
 
+  const insertAfterCurrent = useCallback((song) => {
+    if (!song?.id) return false;
+    const { playlist: currentList, playlistIndex: currentIndex } = stateRef.current;
+    const next = Array.isArray(currentList) ? [...currentList] : [];
+    const at = currentIndex >= 0 ? currentIndex + 1 : next.length;
+    next.splice(at, 0, song);
+    setPlaylistAndPersist(next);
+    return true;
+  }, [setPlaylistAndPersist]);
+
+  const appendToQueue = useCallback((song) => {
+    if (!song?.id) return false;
+    const { playlist: currentList } = stateRef.current;
+    const next = Array.isArray(currentList) ? [...currentList, song] : [song];
+    setPlaylistAndPersist(next);
+    return true;
+  }, [setPlaylistAndPersist]);
+
   const playNext = useCallback(() => {
     if (stateRef.current.listenPlaybackLocked) return;
     const { playlist, playlistIndex, playMode, currentSong } = stateRef.current;
@@ -1766,7 +1794,7 @@ export function AppProvider({ children }) {
         await api.logout();
         setUser(null);
         await checkUserLogin();
-        alert('\u9000\u51fa\u6210\u529f');
+        toast.success('\u9000\u51fa\u6210\u529f');
       } catch (err) {
         console.error('Logout error:', err);
       }
@@ -1795,12 +1823,7 @@ export function AppProvider({ children }) {
   }
 
   function getContrastColor(hex) {
-    if (!hex || !hex.startsWith('#')) return '#ffffff';
-    const r = parseInt(hex.substring(1, 3), 16);
-    const g = parseInt(hex.substring(3, 5), 16);
-    const b = parseInt(hex.substring(5, 7), 16);
-    const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-    return yiq >= 155 ? '#111111' : '#ffffff';
+    return contrastInk(hex);
   }
 
   const requestAppClose = useCallback(() => {
@@ -1813,6 +1836,8 @@ export function AppProvider({ children }) {
       setIsClosePromptOpen(true);
     }
   }, [profile.appearance?.closeBehavior]);
+
+  const playbackProgressValue = useMemo(() => ({ progress, duration }), [progress, duration]);
 
   const contextValue = useMemo(() => ({
     profile,
@@ -1844,9 +1869,7 @@ export function AppProvider({ children }) {
     setIsPlaying,
     volume,
     setVolume,
-    progress,
     setProgress: persistProgress,
-    duration,
     setDuration: persistDuration,
     playMode,
     setPlayMode: setPlayModeAndPersist,
@@ -1872,6 +1895,8 @@ export function AppProvider({ children }) {
     togglePlay,
     playNext,
     playPrev,
+    insertAfterCurrent,
+    appendToQueue,
 
     isFirstTimeSetupComplete,
 
@@ -1931,7 +1956,7 @@ export function AppProvider({ children }) {
     installUpdate
   }), [
     profile, updateProfile, currentView, viewData, historyIndex, viewHistory.length, user, likedSongIds,
-    likedPlaylistId, currentSong, playlist, playlistIndex, isPlaying, volume, progress, duration, playMode,
+    likedPlaylistId, currentSong, playlist, playlistIndex, isPlaying, volume, playMode,
     recentlyPlayed, isLyricsOpen, isQueueOpen, isEqualizerOpen, isAudioMatchOpen, setIsAudioMatchOpen, listenPlaybackLocked, setListenPlaybackLocked, isClosePromptOpen, colorMode, layoutMode, theme, customThemeColors, navbarConfig, lyricStyle,
     desktopLyricsConfig, audioConfig, cacheConfig, playbackConfig, renderingConfig, shortcuts, userPlaylists, audioQuality,
     resumeTime, audioElement, setUser, setCurrentSongAndPersist, setPlaylistAndPersist, setPlaylistIndexAndPersist,
@@ -1940,20 +1965,26 @@ export function AppProvider({ children }) {
     saveNavbarConfig, saveLyricStyle, saveVisualizerMode, saveAppearanceConfig, saveCoverConfig, saveBackgroundConfig,
     saveAdvancedLyricConfig, saveVisualizerConfig, saveDesktopLyricsConfig, mergeDesktopLyricsConfigFromIpc,
     saveAudioConfig, saveCacheConfig, savePlaybackConfig, saveRenderingConfig, saveShortcuts, persistResumeTime,
-    navigateTo, goBack, goForward, checkUserLogin, fetchRemoteRecentlyPlayed, toggleLike, playSong, startHeartMode, togglePlay, playNext, playPrev, setAudioQuality, addToRecent, logout,
+    navigateTo, goBack, goForward, checkUserLogin, fetchRemoteRecentlyPlayed, toggleLike, playSong, startHeartMode, togglePlay, playNext, playPrev, insertAfterCurrent, appendToQueue, setAudioQuality, addToRecent, logout,
     resolveSongCover,
     extractedColors, immersiveColor, updateInfo, checkForUpdates, downloadUpdate, installUpdate
   ]);
 
   return (
-    <AppContext.Provider value={contextValue}>
-      {children}
-    </AppContext.Provider>
+    <PlaybackProgressContext.Provider value={playbackProgressValue}>
+      <AppContext.Provider value={contextValue}>
+        {children}
+      </AppContext.Provider>
+    </PlaybackProgressContext.Provider>
   );
 }
 
 export function useApp() {
   return useContext(AppContext);
+}
+
+export function usePlaybackProgress() {
+  return useContext(PlaybackProgressContext);
 }
 
 

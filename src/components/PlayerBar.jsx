@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { useApp } from '../context/AppContext';
+import { toast } from 'sonner';
+import { useApp, usePlaybackProgress } from '../context/AppContext';
 import CachedCover from './CachedCover';
 import {
   Play,
@@ -17,6 +18,7 @@ import {
   HeartPulse,
   ListMusic,
   Trash2,
+  GripVertical,
   Tv,
   Sliders,
   AppWindow
@@ -30,14 +32,13 @@ export default function PlayerBar({ onToggleLyrics, isLyricsOpen, lyrics = [], p
     playPrev,
     volume,
     setVolume,
-    progress,
-    duration,
     audioElement,
     playMode,
     setPlayMode,
     playlist,
     setPlaylist,
     playlistIndex,
+    setPlaylistIndex,
     playSong,
     likedSongIds,
     toggleLike,
@@ -49,12 +50,15 @@ export default function PlayerBar({ onToggleLyrics, isLyricsOpen, lyrics = [], p
     setIsEqualizerOpen,
     audioConfig
   } = useApp();
+  const { progress, duration } = usePlaybackProgress();
 
   const [showQueue, setShowQueue] = useState(false);
   const [prevVolume, setPrevVolume] = useState(0.8);
   const [showQualityMenu, setShowQualityMenu] = useState(false);
   const [progressPreview, setProgressPreview] = useState(null);
   const [queueVisibleCount, setQueueVisibleCount] = useState(100);
+  const [queueDragIndex, setQueueDragIndex] = useState(null);
+  const [queueDragOverIndex, setQueueDragOverIndex] = useState(null);
   const previewRafRef = useRef(null);
   const activeQueueItemRef = useRef(null);
 
@@ -158,22 +162,39 @@ export default function PlayerBar({ onToggleLyrics, isLyricsOpen, lyrics = [], p
     }
   };
 
+  const moveQueueItem = (from, to) => {
+    if (from === null || to === null || from === to) return;
+    if (from < 0 || to < 0 || from >= playlist.length || to >= playlist.length) return;
+    const next = [...playlist];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    const currentIndex = next.findIndex((item) => String(item?.id) === String(currentSong?.id));
+    setPlaylist(next);
+    if (currentIndex >= 0 && currentIndex !== playlistIndex) setPlaylistIndex(currentIndex);
+  };
+
+  const handleQueueDrop = (targetIndex) => {
+    moveQueueItem(queueDragIndex, targetIndex);
+    setQueueDragIndex(null);
+    setQueueDragOverIndex(null);
+  };
+
   const handleRemoveFromQueue = (index, e) => {
     e.stopPropagation();
     const newQueue = [...playlist];
     newQueue.splice(index, 1);
     setPlaylist(newQueue);
-    
-    // Adjust active index
+
     if (index === playlistIndex) {
       if (newQueue.length === 0) {
-        // Queue empty
-        audioElement.pause();
+        audioElement?.pause();
         playSong(null);
       } else {
         const nextIdx = index % newQueue.length;
         playSong(newQueue[nextIdx], newQueue);
       }
+    } else if (index < playlistIndex) {
+      setPlaylistIndex(playlistIndex - 1);
     }
   };
 
@@ -284,7 +305,7 @@ export default function PlayerBar({ onToggleLyrics, isLyricsOpen, lyrics = [], p
           </button>
           <button
             className="control-btn"
-            onClick={() => window.electronAPI?.toggleMiniPlayer ? window.electronAPI.toggleMiniPlayer() : alert('桌面迷你播放器仅在桌面客户端可用')}
+            onClick={() => window.electronAPI?.toggleMiniPlayer ? window.electronAPI.toggleMiniPlayer() : toast.info('桌面迷你播放器仅在桌面客户端可用')}
             title="灵动悬浮胶囊 / 桌面迷你播放器"
           >
             <AppWindow size={16} />
@@ -452,7 +473,7 @@ export default function PlayerBar({ onToggleLyrics, isLyricsOpen, lyrics = [], p
             if (window.electronAPI) {
               window.electronAPI.toggleDesktopLyrics();
             } else {
-              alert("桌面歌词功能仅在桌面客户端可用");
+              toast.info('桌面歌词功能仅在桌面客户端可用');
             }
           }}
           title="桌面歌词"
@@ -544,9 +565,39 @@ export default function PlayerBar({ onToggleLyrics, isLyricsOpen, lyrics = [], p
             {playlist.slice(0, queueVisibleCount).map((song, index) => {
               const isActive = index === playlistIndex || String(song?.id) === String(currentSong?.id);
               return (
-                <div 
+                <div
                   ref={isActive ? activeQueueItemRef : null}
                   key={song.id + '-' + index}
+                  draggable
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`${song.name || song.title || '歌曲'}，拖动排序，或按 Alt 加上下方向键调整`}
+                  aria-current={isActive ? 'true' : undefined}
+                  onDragStart={(event) => {
+                    setQueueDragIndex(index);
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.dataTransfer.setData('text/plain', String(index));
+                  }}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = 'move';
+                    setQueueDragOverIndex(index);
+                  }}
+                  onDragLeave={() => setQueueDragOverIndex((prev) => (prev === index ? null : prev))}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    handleQueueDrop(index);
+                  }}
+                  onDragEnd={() => {
+                    setQueueDragIndex(null);
+                    setQueueDragOverIndex(null);
+                  }}
+                  onKeyDown={(event) => {
+                    if (!event.altKey || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
+                    event.preventDefault();
+                    moveQueueItem(index, event.key === 'ArrowUp' ? index - 1 : index + 1);
+                  }}
+                  className={`queue-item ${queueDragIndex === index ? 'is-dragging' : ''} ${queueDragOverIndex === index ? 'is-drag-over' : ''}`}
                   onClick={() => playSong(song, playlist)}
                   style={{
                     display: 'flex',
@@ -562,7 +613,8 @@ export default function PlayerBar({ onToggleLyrics, isLyricsOpen, lyrics = [], p
                     fontSize: 12
                   }}
                 >
-                  <div className="song-row-info">
+                  <span className="queue-drag-handle" aria-hidden="true"><GripVertical size={12} /></span>
+                  <div className="song-row-info" style={{ flex: 1, minWidth: 0 }}>
                     <div className="song-row-name" style={{ fontWeight: 600, color: isActive ? 'var(--primary)' : 'var(--text-main)', display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span>{song.name || song.title}</span>
                       {song.isHeartRecommend && <span className="queue-heart-pill">心动推荐</span>}
@@ -571,7 +623,10 @@ export default function PlayerBar({ onToggleLyrics, isLyricsOpen, lyrics = [], p
                       {song.artist || song.ar?.map(a => a.name).join(' / ')}
                     </div>
                   </div>
-                  <button 
+                  <button
+                    type="button"
+                    draggable={false}
+                    aria-label={`从队列移除 ${song.name || song.title || ''}`}
                     onClick={(e) => handleRemoveFromQueue(index, e)}
                     style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', flexShrink: 0 }}
                   >

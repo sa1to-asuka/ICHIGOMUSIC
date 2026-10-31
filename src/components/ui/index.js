@@ -3,6 +3,11 @@ export { Modal, ModalTrigger, ModalClose, ModalContent, ModalTitle, ModalDescrip
 export { Popover, PopoverTrigger, PopoverAnchor, PopoverClose, PopoverContent } from './Popover';
 export { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem, ContextMenuSeparator } from './Menu';
 export { Slider } from './Slider';
+export { Tabs, TabsList, TabsTrigger, TabsContent } from './Tabs';
+export { Select, SelectGroup, SelectValue, SelectTrigger, SelectContent, SelectItem, SelectLabel, SelectSeparator } from './Select';
+export { Checkbox } from './Checkbox';
+export { Progress } from './Progress';
+export { AlertDialog, AlertDialogTrigger, AlertDialogContent } from './AlertDialog';
 export { Switch } from './Switch';
 export { SegmentedControl, SegmentedControlItem } from './SegmentedControl';
 export { Tooltip, TooltipProvider } from './Tooltip';
@@ -10,4 +15,5 @@ export { ScrollArea } from './ScrollArea';
 export { Input } from './Input';
 export { Skeleton } from './Skeleton';
 export { EmptyState } from './EmptyState';
+export { Toaster, toast } from './Toast';
 export { cn } from './utils';

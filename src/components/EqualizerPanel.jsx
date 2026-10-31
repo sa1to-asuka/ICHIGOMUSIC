@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { Sliders, Volume2, RotateCcw, Plus, Trash2, X, Activity, Sparkles, Waves } from 'lucide-react';
+import { Modal, ModalContent } from './ui';
 import {
   EQ_BAND_FREQUENCIES,
   EQ_BAND_LABELS,
@@ -742,23 +743,27 @@ export default function EqualizerPanel({ isModal = false, onClose }) {
   }
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: isLight ? 'rgba(0, 0, 0, 0.35)' : 'rgba(0, 0, 0, 0.68)',
-        backdropFilter: 'blur(16px)',
-        animation: 'fadeIn 0.2s ease-out'
-      }}
-      onClick={onClose}
-    >
-      <div style={{ width: '780px', maxWidth: '94vw', maxHeight: '92vh', overflowY: 'auto' }}>
+    <Modal open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <ModalContent
+        showClose={false}
+        aria-describedby={undefined}
+        className="equalizer-dialog"
+        style={{
+          width: '780px',
+          maxWidth: '94vw',
+          maxHeight: '92vh',
+          padding: 0,
+          gap: 0,
+          background: 'transparent',
+          border: 'none',
+          boxShadow: 'none',
+          backdropFilter: 'none',
+          WebkitBackdropFilter: 'none',
+          overflowY: 'auto'
+        }}
+      >
         {panelContent}
-      </div>
-    </div>
+      </ModalContent>
+    </Modal>
   );
 }

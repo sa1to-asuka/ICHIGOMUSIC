@@ -100,7 +100,7 @@ const DesktopLyricLine = React.memo(({
           position: 'relative',
           fontSize: `${config.fontSize || 36}px`,
           fontWeight: isActive ? (config.fontWeight || 700) : Math.max(300, (config.fontWeight || 700) - 100),
-          fontFamily: `"${fontFamily}", "Microsoft YaHei", "Noto Sans SC", sans-serif`,
+          fontFamily: `"${fontFamily} Variable", "${fontFamily}", "Microsoft YaHei", "Noto Sans SC", sans-serif`,
           textAlign,
           whiteSpace: 'nowrap',
           textShadow: `${shadow}${glow}`,
@@ -152,7 +152,7 @@ const DesktopLyricLine = React.memo(({
           style={{
             fontSize: `${config.translationSize || Math.max(16, (config.fontSize || 36) * 0.6)}px`,
             fontWeight: config.fontWeight || 700,
-            fontFamily: `"${fontFamily}", "Microsoft YaHei", "Noto Sans SC", sans-serif`,
+            fontFamily: `"${fontFamily} Variable", "${fontFamily}", "Microsoft YaHei", "Noto Sans SC", sans-serif`,
             color: activeAccent,
             marginTop: 2,
             textShadow: `${shadow}${glow}`,
@@ -181,19 +181,19 @@ export default function DesktopLyrics() {
     locked: true,
     fontSize: 36,
     translationSize: 22,
-    fontFamily: 'Inter',
+    fontFamily: 'Instrument Sans',
     fontWeight: 700,
     boldFirstLine: true,
     desktopColor: 'theme',
-    colorPreset: 'strawberry',
-    playedColor: '#ff3366',
+    colorPreset: 'clay',
+    playedColor: '#E08A63',
     unplayedColor: '#ffffff',
     textStroke: { enabled: true, width: 0.6, color: '#4a0e1c' },
     textShadow: { enabled: true, color: '#ff336680', blur: 12, offsetX: 0, offsetY: 0 },
     glow: { enabled: false, intensity: 0.6 },
     opacity: 1,
     theme: 'strawberry',
-    customThemeColors: { primary: '#ff3366' },
+    customThemeColors: { primary: '#E08A63' },
     alignment: 'center',
     showTranslation: true,
     lineCount: 3
@@ -211,6 +211,7 @@ export default function DesktopLyrics() {
   syncDataRef.current = syncData;
 
   const colorPresets = {
+    clay: { played: '#E08A63', unplayed: '#EDE7DF', stroke: '#241A12' },
     strawberry: { played: '#ff3366', unplayed: '#ffffff', stroke: '#4a0e1c' },
     aurora: { played: '#00e676', unplayed: '#e0f7fa', stroke: '#003300' },
     ocean: { played: '#00b0ff', unplayed: '#e1f5fe', stroke: '#0d47a1' },
@@ -220,10 +221,10 @@ export default function DesktopLyrics() {
     dark: { played: '#e0e0e0', unplayed: '#757575', stroke: '#1a1a1a' }
   };
 
-  const preset = colorPresets[config.colorPreset || 'strawberry'] || colorPresets.strawberry;
+  const preset = colorPresets[config.colorPreset || 'clay'] || colorPresets.clay;
   
   const activeAccent = config.colorPreset === 'custom'
-    ? (config.playedColor || '#ff3366')
+    ? (config.playedColor || '#E08A63')
     : preset.played;
     
   const unplayedColor = config.colorPreset === 'custom'
@@ -238,7 +239,7 @@ export default function DesktopLyrics() {
   const strokeWidth = config.textStroke?.width ?? 0.6;
   const stroke = isStrokeEnabled ? `${strokeWidth}px ${strokeColor}` : '0 transparent';
 
-  const fontFamily = config.fontFamily || 'Inter';
+  const fontFamily = config.fontFamily || 'Instrument Sans';
   const shadow = config.textShadow?.enabled === false
     ? 'none'
     : `${config.textShadow?.offsetX || 0}px ${config.textShadow?.offsetY || 2}px ${config.textShadow?.blur || 12}px ${config.textShadow?.color || '#000000cc'}`;
@@ -657,7 +658,7 @@ export default function DesktopLyrics() {
               })}
             </div>
           ) : (
-            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: `${config.fontSize || 36}px`, fontWeight: config.fontWeight || 800, fontFamily: `"${fontFamily}", "Microsoft YaHei", sans-serif`, color: unplayedColor, textShadow: `${shadow}${glow}`, WebkitTextStroke: stroke, whiteSpace: 'nowrap' }}>
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: `${config.fontSize || 36}px`, fontWeight: config.fontWeight || 800, fontFamily: `"${fontFamily} Variable", "${fontFamily}", "Microsoft YaHei", sans-serif`, color: unplayedColor, textShadow: `${shadow}${glow}`, WebkitTextStroke: stroke, whiteSpace: 'nowrap' }}>
               ICHIGOMusic
             </div>
           )}

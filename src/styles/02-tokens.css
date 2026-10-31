@@ -8,18 +8,21 @@
   --primary-hover: hsl(var(--primary-hue), var(--primary-sat), calc(var(--primary-light) - 8%));
   --primary-glow: hsla(var(--primary-hue), var(--primary-sat), var(--primary-light), 0.35);
   --primary-subtle: hsla(var(--primary-hue), var(--primary-sat), var(--primary-light), 0.1);
+  --primary-ink: var(--primary-text, #ffffff);
   
   /* Structural Variables */
   --sidebar-width: 260px;
   --player-height: 88px;
   --border-radius-lg: 16px;
   --border-radius-md: 10px;
-  --font-title: 'Outfit', 'Noto Sans SC', sans-serif;
-  --font-body: 'Inter', 'Noto Sans SC', sans-serif;
-  
+  --font-display: 'Newsreader Variable', 'Newsreader', Georgia, 'Songti SC', 'Noto Serif SC', 'SimSun', serif;
+  --font-body: 'Instrument Sans Variable', 'Instrument Sans', 'Segoe UI', system-ui, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+  --font-title: var(--font-display);
+
   /* Customized Lyric Font Config (Set by JS) */
   --lyric-font-size: 1.5rem;
-  --lyric-font-family: var(--font-title);
+  --lyric-font-family: var(--font-body);
   --lyric-color: var(--text-muted);
   --lyric-active-color: var(--primary);
   --lyric-glow-shadow: 0 0 12px var(--primary-glow);
@@ -38,25 +41,53 @@
 
 /* Mode Base Colors */
 .mode-dark {
-  --bg-gradient-start: #09090b;
-  --bg-gradient-end: #09090b;
-  --card-bg: rgba(255, 255, 255, 0.05);
-  --card-border: rgba(255, 255, 255, 0.08);
-  --text-main: #f3f4f6;
-  --text-muted: #9ca3af;
+  --bg-gradient-start: #1b1815;
+  --bg-gradient-end: #141210;
+  --card-bg: rgba(255, 255, 255, 0.045);
+  --card-border: rgba(255, 255, 255, 0.09);
+  --text-main: #ede7df;
+  --text-muted: #a8a49a;
   --text-active: #ffffff;
-  --player-bar-bg: rgba(15, 12, 27, 0.72);
+  --player-bar-bg: rgba(27, 24, 21, 0.78);
+  --overlay-bg: rgba(27, 24, 21, 0.92);
+
+  /* Warm semantic palette */
+  --color-canvas: #1b1815;
+  --color-raised: #23201c;
+  --color-sunken: #141210;
+  --color-ink: #ede7df;
+  --color-ink-secondary: #bdb4a8;
+  --color-ink-muted: #948a7e;
+  --color-border: #37322c;
+  --color-clay: #e08a63;
+  --color-clay-ink: #241a12;
+  --color-focus-ring: #e08a63;
+  --color-hover: #2b2722;
 }
 
 .mode-light {
-  --bg-gradient-start: #f5f5f4;
-  --bg-gradient-end: #f5f5f4;
-  --card-bg: rgba(0, 0, 0, 0.03);
-  --card-border: rgba(0, 0, 0, 0.08);
-  --text-main: #111827;
-  --text-muted: #4b5563;
+  --bg-gradient-start: #faf7f2;
+  --bg-gradient-end: #f1eae0;
+  --card-bg: rgba(44, 38, 34, 0.035);
+  --card-border: rgba(44, 38, 34, 0.10);
+  --text-main: #2c2622;
+  --text-muted: #5c534b;
   --text-active: #000000;
-  --player-bar-bg: rgba(253, 253, 253, 0.72);
+  --player-bar-bg: rgba(250, 247, 242, 0.78);
+  --overlay-bg: rgba(250, 247, 242, 0.92);
+
+  /* Warm semantic palette */
+  --color-canvas: #faf7f2;
+  --color-raised: #fffcf7;
+  --color-sunken: #f1eae0;
+  --color-ink: #2c2622;
+  --color-ink-secondary: #5c534b;
+  --color-ink-muted: #7a6f65;
+  --color-border: #e4dacb;
+  --color-clay: #b4552d;
+  --color-clay-ink: #ffffff;
+  --color-focus-ring: #b4552d;
+  --color-hover: #f4ede3;
   /* 新增 */
   --glass-bg: rgba(0, 0, 0, 0.04);
   --glass-border: rgba(0, 0, 0, 0.08);
@@ -80,7 +111,7 @@
   --primary-hover: #e62055;
   --primary-glow: rgba(255, 51, 102, 0.35);
   --primary-subtle: rgba(255, 51, 102, 0.12);
-  --primary-text: #ffffff;
+  --primary-text: #241a12;
   --theme-bg-start: #0f0c1b;
   --theme-bg-end: #050209;
   --theme-text-main: #f3f4f6;
@@ -100,7 +131,7 @@
   --primary-hover: #e64d99;
   --primary-glow: rgba(255, 102, 178, 0.35);
   --primary-subtle: rgba(255, 102, 178, 0.12);
-  --primary-text: #ffffff;
+  --primary-text: #241a12;
   --theme-bg-start: #1a0f16;
   --theme-bg-end: #080307;
   --theme-text-main: #fce7f3;
@@ -120,7 +151,7 @@
   --primary-hover: #3d8b40;
   --primary-glow: rgba(76, 175, 80, 0.35);
   --primary-subtle: rgba(76, 175, 80, 0.12);
-  --primary-text: #ffffff;
+  --primary-text: #102018;
   --theme-bg-start: #0c1210;
   --theme-bg-end: #030705;
   --theme-text-main: #ecfdf5;
@@ -140,7 +171,7 @@
   --primary-hover: #0091ea;
   --primary-glow: rgba(0, 176, 255, 0.35);
   --primary-subtle: rgba(0, 176, 255, 0.12);
-  --primary-text: #ffffff;
+  --primary-text: #061a24;
   --theme-bg-start: #0a1018;
   --theme-bg-end: #02060b;
   --theme-text-main: #e0f2fe;
@@ -180,7 +211,7 @@
   --primary-hover: #757575;
   --primary-glow: rgba(158, 158, 158, 0.35);
   --primary-subtle: rgba(158, 158, 158, 0.12);
-  --primary-text: #ffffff;
+  --primary-text: #1a1a1a;
   --theme-bg-start: #09090b;
   --theme-bg-end: #030304;
   --theme-text-main: #f4f4f5;
@@ -188,6 +219,28 @@
   --theme-text-active: #ffffff;
   --theme-card-bg: rgba(255, 255, 255, 0.045);
   --theme-card-border: rgba(255, 255, 255, 0.08);
+}
+
+/* Warm paper / clay — Claude-inspired surface, album colours still take over
+   the immersive stage through --primary overrides. */
+.theme-paper {
+  --primary-hue: 19;
+  --primary-sat: 61%;
+  --primary-light: 64%;
+  --primary-rgb: 224, 138, 99;
+  --accent-rgb: 224, 138, 99;
+  --primary: #e08a63;
+  --primary-hover: #d97a52;
+  --primary-glow: rgba(224, 138, 99, 0.34);
+  --primary-subtle: rgba(224, 138, 99, 0.14);
+  --primary-text: #241a12;
+  --theme-bg-start: #1b1815;
+  --theme-bg-end: #141210;
+  --theme-text-main: #ede7df;
+  --theme-text-muted: #a8a49a;
+  --theme-text-active: #ffffff;
+  --theme-card-bg: rgba(255, 255, 255, 0.045);
+  --theme-card-border: rgba(255, 255, 255, 0.09);
 }
 
 
@@ -251,24 +304,61 @@
   --theme-card-border: rgba(0, 0, 0, 0.09);
 }
 
-body[class*="theme-"] {
-  --bg-gradient-start: var(--theme-bg-start);
-  --bg-gradient-end: var(--theme-bg-end);
-  --text-main: var(--theme-text-main);
-  --text-muted: var(--theme-text-muted);
-  --text-active: var(--theme-text-active);
-  --card-bg: var(--theme-card-bg);
-  --card-border: var(--theme-card-border);
-  --glass-bg: var(--theme-card-bg);
-  --glass-border: var(--theme-card-border);
-  --glass-bg-hover: color-mix(in srgb, var(--theme-card-bg) 72%, var(--theme-text-active) 8%);
-  --glass-bg-strong: color-mix(in srgb, var(--theme-card-bg) 60%, var(--theme-text-active) 14%);
-  --surface-bg: color-mix(in srgb, var(--theme-card-bg) 78%, transparent);
-  --surface-border: var(--theme-card-border);
-  --divider-color: var(--theme-card-border);
-  --overlay-bg: color-mix(in srgb, var(--theme-bg-start) 88%, transparent);
-  --input-bg: var(--theme-card-bg);
-  --player-bar-bg: color-mix(in srgb, var(--theme-bg-start) 78%, transparent);
+.mode-light.theme-paper {
+  --primary-hue: 19;
+  --primary-sat: 60%;
+  --primary-light: 44%;
+  --primary-rgb: 180, 85, 45;
+  --accent-rgb: 180, 85, 45;
+  --primary: #b4552d;
+  --primary-hover: #9a4726;
+  --primary-glow: rgba(180, 85, 45, 0.26);
+  --primary-subtle: rgba(180, 85, 45, 0.10);
+  --primary-text: #fffdf8;
+  --theme-bg-start: #faf7f2;
+  --theme-bg-end: #f1eae0;
+  --theme-text-main: #2c2622;
+  --theme-text-muted: #5c534b;
+  --theme-text-active: #000000;
+  --theme-card-bg: rgba(44, 38, 34, 0.035);
+  --theme-card-border: rgba(44, 38, 34, 0.10);
+}
+
+body[class*="theme-"]:not(.theme-custom) {
+  /* Every accent theme shares the warm neutral surface system; only the
+     accent itself comes from the theme block. */
+  --bg-gradient-start: var(--color-canvas);
+  --bg-gradient-end: var(--color-sunken);
+  --text-main: var(--color-ink);
+  --text-muted: var(--color-secondary);
+  --text-active: var(--color-ink);
+  --card-bg: color-mix(in srgb, var(--color-raised) 88%, transparent);
+  --card-border: var(--color-border);
+  --glass-bg: color-mix(in srgb, var(--color-raised) 72%, transparent);
+  --glass-border: var(--color-border);
+  --glass-bg-hover: var(--color-hover);
+  --glass-bg-strong: color-mix(in srgb, var(--color-raised) 92%, transparent);
+  --surface-bg: color-mix(in srgb, var(--color-sunken) 70%, transparent);
+  --surface-border: var(--color-border);
+  --divider-color: var(--color-border);
+  --overlay-bg: color-mix(in srgb, var(--color-raised) 94%, transparent);
+  --input-bg: var(--color-sunken);
+  --player-bar-bg: color-mix(in srgb, var(--color-raised) 94%, transparent);
+}
+
+/* Bridge the legacy token names used by hundreds of existing rules. */
+body.theme-paper {
+  --card-bg: var(--color-raised);
+  --card-border: var(--color-border);
+  --glass-bg: var(--color-raised);
+  --glass-border: var(--color-border);
+  --glass-bg-hover: var(--color-hover);
+  --surface-bg: var(--color-sunken);
+  --surface-border: var(--color-border);
+  --divider-color: var(--color-border);
+  --overlay-bg: var(--color-raised);
+  --input-bg: var(--color-sunken);
+  --player-bar-bg: color-mix(in srgb, var(--color-raised) 94%, transparent);
 }
 
 /* Custom Variables for Color Picker Override */
@@ -326,6 +416,49 @@ body[class*="theme-"] {
   --text-xl: 18px;
   --text-2xl: 22px;
   --text-3xl: 28px;
+
+  /* Type roles — size / line-height / weight */
+  --type-display-size: 40px;
+  --type-display-line: 1.12;
+  --type-display-weight: 600;
+  --type-h1-size: 32px;
+  --type-h1-line: 1.18;
+  --type-h2-size: 24px;
+  --type-h2-line: 1.25;
+  --type-h3-size: 19px;
+  --type-h3-line: 1.35;
+  --type-body-size: 14px;
+  --type-body-line: 1.65;
+  --type-ui-size: 13px;
+  --type-ui-line: 1.45;
+  --type-small-size: 12px;
+  --type-small-line: 1.45;
+  --type-caption-size: 11px;
+  --type-caption-line: 1.4;
+  --type-mono-size: 12px;
+  --type-mono-line: 1.4;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Motion */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Blur */
+  --blur-sm: 8px;
+  --blur-md: 14px;
+  --blur-lg: 24px;
+
+  /* Focus */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring: var(--primary);
 
   /* Radius (legacy --border-radius-* remain canonical) */
   --radius-sm: 8px;

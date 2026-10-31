@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Play, Heart, Trash2, History, Calendar, ListMusic, Sparkles } from 'lucide-react';
 import ListeningHeatmap from '../components/ListeningHeatmap';
+import SongContextMenu from '../components/SongContextMenu';
 
 export default function RecentlyPlayed() {
   const { recentlyPlayed, playSong, likedSongIds, toggleLike, navigateTo, viewData } = useApp();
@@ -106,7 +107,7 @@ export default function RecentlyPlayed() {
               <History size={48} color="#ffffff" style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }} />
             </div>
             <div>
-              <h1 style={{ fontFamily: 'var(--font-title)', fontSize: '28px', fontWeight: 800, color: 'var(--text-active, var(--text-main))' }}>最近播放</h1>
+              <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--type-h1-size, 32px)', fontWeight: 'var(--weight-semibold, 600)', color: 'var(--text-active, var(--text-main))', lineHeight: 'var(--type-h1-line, 1.18)' }}>最近播放</h1>
               <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <span>双轨永久归档</span>
                 <span>·</span>
@@ -144,8 +145,8 @@ export default function RecentlyPlayed() {
                 <tbody>
                   {recentlyPlayed.map((song, index) => {
                     return (
-                      <tr 
-                        key={song.id + '-' + index} 
+                      <SongContextMenu key={song.id + '-' + index} song={song} queue={recentlyPlayed}>
+                      <tr
                         className="song-row"
                         onDoubleClick={() => playSong(song, recentlyPlayed)}
                       >
@@ -194,6 +195,7 @@ export default function RecentlyPlayed() {
                           </span>
                         </td>
                       </tr>
+                      </SongContextMenu>
                     );
                   })}
                 </tbody>

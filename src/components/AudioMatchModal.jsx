@@ -6,6 +6,7 @@ import {
   Sparkles, Check, AlertCircle, Disc, Volume2, ShieldCheck
 } from 'lucide-react';
 import { recordAndRecognize } from '../utils/audioMatchEngine';
+import { Modal, ModalContent } from './ui';
 
 function hexToRgba(hex, alpha = 1) {
   if (!hex || typeof hex !== 'string') return `rgba(255, 64, 129, ${alpha})`;
@@ -192,38 +193,18 @@ export default function AudioMatchModal({ isOpen, onClose }) {
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: isLight ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.75)',
-        backdropFilter: 'blur(16px)',
-        zIndex: 10000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px'
-      }}
-      onClick={onClose}
-    >
-      <div
+    <Modal open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <ModalContent
+        showClose={false}
+        aria-describedby={undefined}
+        className="audio-match-dialog"
         style={{
           width: '540px',
           maxWidth: '95vw',
-          background: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(20, 14, 30, 0.95)',
-          borderRadius: '24px',
-          border: isLight ? '1px solid rgba(0, 0, 0, 0.1)' : '1px solid rgba(255, 255, 255, 0.12)',
-          boxShadow: isLight
-            ? '0 24px 60px rgba(0, 0, 0, 0.15), 0 0 30px var(--primary-glow, rgba(255,64,129,0.15))'
-            : '0 24px 60px rgba(0, 0, 0, 0.7), 0 0 40px var(--primary-glow, rgba(255,64,129,0.25))',
           padding: '28px',
-          display: 'flex',
-          flexDirection: 'column',
           gap: '20px',
-          color: 'var(--text-main, #1e1e2d)',
           position: 'relative'
         }}
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -313,6 +294,7 @@ export default function AudioMatchModal({ isOpen, onClose }) {
             <button
               type="button"
               onClick={onClose}
+              aria-label="关闭听歌识曲"
               style={{
                 width: '32px',
                 height: '32px',
@@ -599,7 +581,7 @@ export default function AudioMatchModal({ isOpen, onClose }) {
             </button>
           </div>
         )}
-      </div>
-    </div>
+      </ModalContent>
+    </Modal>
   );
 }

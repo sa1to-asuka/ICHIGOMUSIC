@@ -193,6 +193,7 @@ export const api = {
   // Discover Features
   getBanners: () => request('/banner'),
   getPersonalized: (limit = 12) => request(`/personalized?limit=${limit}`),
+  getTopPlaylists: (limit = 12) => request(`/top/playlist?limit=${limit}&order=hot`),
 
   // Heart Mode & Intelligent Recommendations
   getIntelligenceList: (songId, playlistId, startMusicId, count = 20) =>

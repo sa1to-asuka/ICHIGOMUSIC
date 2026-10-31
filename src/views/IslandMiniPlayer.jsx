@@ -119,14 +119,14 @@ export default function IslandMiniPlayer() {
         background: 'transparent',
         userSelect: 'none',
         overflow: 'hidden',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif'
+        fontFamily: '"Instrument Sans Variable", "Instrument Sans", "Segoe UI", system-ui, sans-serif'
       }}
     >
       <style>{`
         .mini-control-btn {
-          background: ${isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.08)'};
-          border: 1px solid ${isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.1)'};
-          color: ${isLight ? 'rgba(0, 0, 0, 0.75)' : 'rgba(255, 255, 255, 0.85)'};
+          background: ${isLight ? '#F4EDE3' : '#2B2722'};
+          border: 1px solid ${isLight ? '#E4DACB' : '#37322C'};
+          color: ${isLight ? '#5C534B' : '#BDB4A8'};
           width: 28px;
           height: 28px;
           border-radius: 50%;
@@ -139,34 +139,34 @@ export default function IslandMiniPlayer() {
           padding: 0;
         }
         .mini-control-btn:hover {
-          background: ${isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.2)'};
-          color: ${isLight ? '#000000' : '#ffffff'};
-          transform: scale(1.08);
+          background: ${isLight ? '#FFFCF7' : '#3A342D'};
+          color: ${isLight ? '#2C2622' : '#EDE7DF'};
+          transform: none;
         }
         .mini-play-btn {
           width: 34px;
           height: 34px;
           border-radius: 50%;
-          background: linear-gradient(135deg, ${immersiveColor || '#ff4081'}, #7928ca);
+          background: ${isLight ? '#B4552D' : '#E08A63'};
           border: none;
-          color: #fff;
+          color: ${isLight ? '#FFFFFF' : '#241A12'};
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          box-shadow: 0 0 14px ${immersiveColor || '#ff4081'}55;
+          box-shadow: 0 4px 12px ${isLight ? 'rgba(180, 85, 45, 0.24)' : 'rgba(0, 0, 0, 0.28)'};
           transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
           -webkit-app-region: no-drag;
           padding: 0;
         }
         .mini-play-btn:hover {
-          transform: scale(1.1);
-          box-shadow: 0 0 20px ${immersiveColor || '#ff4081'}88;
+          transform: scale(1.04);
+          box-shadow: 0 6px 16px ${isLight ? 'rgba(180, 85, 45, 0.28)' : 'rgba(0, 0, 0, 0.32)'};
         }
         .mini-top-action-btn {
-          background: ${isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.06)'};
-          border: 1px solid ${isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)'};
-          color: ${isLight ? 'rgba(0, 0, 0, 0.45)' : 'rgba(255, 255, 255, 0.55)'};
+          background: ${isLight ? '#F4EDE3' : '#2B2722'};
+          border: 1px solid ${isLight ? '#E4DACB' : '#37322C'};
+          color: ${isLight ? '#7A6F65' : '#948A7E'};
           cursor: pointer;
           width: 20px;
           height: 20px;
@@ -179,9 +179,9 @@ export default function IslandMiniPlayer() {
           padding: 0;
         }
         .mini-top-action-btn:hover {
-          color: ${isLight ? '#000000' : '#ffffff'};
-          background: ${isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.2)'};
-          transform: scale(1.05);
+          color: ${isLight ? '#2C2622' : '#EDE7DF'};
+          background: ${isLight ? '#FFFCF7' : '#3A342D'};
+          transform: none;
         }
       `}</style>
 
@@ -190,13 +190,11 @@ export default function IslandMiniPlayer() {
         style={{
           width: '100%',
           height: '100%',
-          borderRadius: '28px',
-          background: isLight
-            ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(246, 244, 252, 0.98) 100%)'
-            : 'linear-gradient(135deg, rgba(24, 18, 36, 0.95) 0%, rgba(12, 10, 20, 0.98) 100%)',
-          backdropFilter: 'blur(32px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(32px) saturate(180%)',
-          border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.12)'}`,
+          borderRadius: '22px',
+          background: isLight ? 'rgba(250, 247, 242, 0.96)' : 'rgba(27, 24, 21, 0.96)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: `1px solid ${isLight ? '#E4DACB' : '#37322C'}`,
           boxShadow: isLight
             ? `0 10px 28px rgba(0, 0, 0, 0.14), 0 0 16px ${immersiveColor}30`
             : `0 10px 28px rgba(0, 0, 0, 0.6), 0 0 16px ${immersiveColor}25`,

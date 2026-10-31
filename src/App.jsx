@@ -13,6 +13,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ModernPlayerBar from './components/ModernPlayerBar';
 import ModernTopControls from './components/ModernTopControls';
 import { shortcutMatches } from './components/ShortcutRow';
+import { contrastInk } from './utils/colorContrast';
 import MiniQueuePopover from './components/MiniQueuePopover';
 import { useCachedCoverUrl } from './components/CachedCover';
 
@@ -42,8 +43,9 @@ import LyricExportModal from './components/LyricExportModal';
 import SleepTimerModal from './components/SleepTimerModal';
 import EqualizerModal from './components/EqualizerModal';
 import AudioMatchModal from './components/AudioMatchModal';
-import { Button, IconButton, Switch, Slider, SegmentedControl, SegmentedControlItem } from './components/ui';
-import { ChevronLeft, ChevronRight, X, Settings as SettingsIcon, Minus, Square, Dices, RotateCcw, RotateCw, Sparkles } from 'lucide-react';
+import CommandPalette from './components/CommandPalette';
+import { Button, IconButton, Switch, Slider, SegmentedControl, SegmentedControlItem, Toaster, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Tabs, TabsList, TabsTrigger } from './components/ui';
+import { ChevronLeft, ChevronRight, X, Settings as SettingsIcon, Minus, Square, Dices, RotateCcw, RotateCw, Sparkles, Download, SlidersHorizontal, Moon } from 'lucide-react';
 
 function SettingSliderRow({ label, value, min, max, step = 1, onChange, unit = '', formatValue, style }) {
   const displayVal = formatValue ? formatValue(value) : `${value}${unit}`;
@@ -72,6 +74,19 @@ function SettingSwitchRow({ label, checked, onChange, style }) {
   );
 }
 
+function SettingSelect({ value, onChange, options, ariaLabel, style }) {
+  return (
+    <Select value={String(value)} onValueChange={onChange}>
+      <SelectTrigger aria-label={ariaLabel} style={style}><SelectValue /></SelectTrigger>
+      <SelectContent>
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 function AppContent() {
   const {
     currentView,
@@ -80,7 +95,6 @@ function AppContent() {
     canGoBack,
     canGoForward,
     currentSong,
-    progress,
     isPlaying,
     audioElement,
     viewData,
@@ -117,6 +131,7 @@ function AppContent() {
     downloadUpdate,
     installUpdate
   } = useApp();
+  const immersiveInk = useMemo(() => contrastInk(immersiveColor), [immersiveColor]);
   const { engineRef, lyrics, activeLineIndex, lyricsSongId } = useLyricEngine(
     currentSong?.id,
     audioElement,
@@ -182,8 +197,19 @@ function AppContent() {
   const [immersiveSettingsTab, setImmersiveSettingsTab] = useState('lyrics');
   const [isLyricAdjusterOpen, setIsLyricAdjusterOpen] = useState(false);
   const [isSleepTimerOpen, setIsSleepTimerOpen] = useState(false);
+  const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isLyricExportOpen, setIsLyricExportOpen] = useState(false);
   const [jizuraStatus, setJizuraStatus] = useState({ proposalCount: 1, activeStyle: 'noir', mood: '' });
+
+  useEffect(() => {
+    const handleCommandKey = (event) => {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'k') return;
+      event.preventDefault();
+      setIsCommandOpen((value) => !value);
+    };
+    window.addEventListener('keydown', handleCommandKey);
+    return () => window.removeEventListener('keydown', handleCommandKey);
+  }, []);
 
   useEffect(() => {
     const handleStatusUpdate = (e) => {
@@ -223,6 +249,18 @@ function AppContent() {
         [currentLyricsMode]: visualizerStyle
       }
     });
+  };
+
+  const applyKtvPreset = (value) => {
+    const nextPatch = { ktvPreset: value };
+    if (currentSong?.id && advancedLyricConfig?.ktvSongTemplates?.[String(currentSong.id)]) {
+      nextPatch.ktvSongTemplates = {
+        ...(advancedLyricConfig.ktvSongTemplates || {}),
+        [String(currentSong.id)]: value
+      };
+    }
+    updateAdvancedLyricConfig(nextPatch);
+    window.dispatchEvent(new CustomEvent('jizura-action', { detail: { action: 'setStyle', style: value } }));
   };
 
   const cachedImmersiveCoverUrl = useCachedCoverUrl(currentSong);
@@ -343,7 +381,7 @@ function AppContent() {
           || (Array.isArray(likedSongIds) && (likedSongIds.includes(currentSong.id) || likedSongIds.includes(String(currentSong.id)) || likedSongIds.includes(Number(currentSong.id))))
         )
       );
-      const timeSnapshot = audioElement ? (audioElement.currentTime || 0) : progress;
+      const timeSnapshot = audioElement ? (audioElement.currentTime || 0) : 0;
       const adjustedSnapshot = timeSnapshot + (advancedLyricConfig?.globalOffset || 0);
 
       let effectiveActiveIndex = -1;
@@ -372,7 +410,7 @@ function AppContent() {
     sendMiniUpdate();
     const intervalId = setInterval(sendMiniUpdate, 300);
     return () => clearInterval(intervalId);
-  }, [isPlaying, currentSong, progress, volume, likedSongIds, lyrics, audioElement, advancedLyricConfig?.globalOffset, immersiveColor, colorMode]);
+  }, [isPlaying, currentSong, volume, likedSongIds, lyrics, audioElement, advancedLyricConfig?.globalOffset, immersiveColor, colorMode]);
 
   // Listen to Mini Player transport actions
   useEffect(() => {
@@ -535,11 +573,11 @@ function AppContent() {
       case 'local':
         return <LocalMusic key="local" />;
       case 'listen-together':
-        return <ListenTogether key="listen-together" listenState={listenState} currentSong={currentSong} lyrics={lyrics} currentTime={progress} />;
+        return <ListenTogether key="listen-together" listenState={listenState} currentSong={currentSong} lyrics={lyrics} />;
       default:
         return layoutMode === 'modern' ? <ModernHome key="home" /> : <Discover key="discover" />;
     }
-  }, [currentView, viewData, layoutMode, listenState, currentSong, lyrics, progress]);
+  }, [currentView, viewData, layoutMode, listenState, currentSong, lyrics]);
 
   return (
     <div
@@ -656,7 +694,9 @@ function AppContent() {
             style={{
               '--primary': immersiveColor || 'var(--primary)',
               '--primary-glow': `${immersiveColor || 'var(--primary)'}59`,
-              '--primary-subtle': `${immersiveColor || 'var(--primary)'}1a`
+              '--primary-subtle': `${immersiveColor || 'var(--primary)'}1a`,
+              '--primary-text': immersiveInk,
+              '--primary-ink': immersiveInk
             }}
           >
             {currentLyricsMode !== 'talk' && (
@@ -717,9 +757,12 @@ function AppContent() {
         )}
 
         {isLyricsOpen && isImmersiveSettingsOpen && (
-          <div className="immersive-settings-panel immersive-settings-panel-wide" style={{ maxHeight: 'calc(100vh - 160px)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', zIndex: 9999 }}>
-                <div className="immersive-settings-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid var(--divider-color)' }}>
-                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700 }}>沉浸式歌词设置</h3>
+          <div className="immersive-settings-panel immersive-settings-panel-wide">
+                <div className="isp-header">
+                  <div className="isp-heading">
+                    <span className="type-caption isp-eyebrow">Immersive Lyrics</span>
+                    <h3 className="isp-title">沉浸式歌词</h3>
+                  </div>
                   <IconButton
                     variant="ghost"
                     size="sm"
@@ -729,79 +772,83 @@ function AppContent() {
                     <X size={16} />
                   </IconButton>
                 </div>
-                
-                {/* Tab Row */}
-                <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--divider-color)', background: 'var(--surface-sunken)' }}>
-                  <SegmentedControl
-                    value={immersiveSettingsTab}
-                    onValueChange={(val) => { if (val) setImmersiveSettingsTab(val); }}
-                    size="sm"
-                    style={{ width: '100%', display: 'flex' }}
-                  >
-                    <SegmentedControlItem value="lyrics" style={{ flex: 1 }}>歌词样式</SegmentedControlItem>
-                    <SegmentedControlItem value="background" style={{ flex: 1 }}>背景/封面</SegmentedControlItem>
-                    <SegmentedControlItem value="visualizer" style={{ flex: 1 }}>音频可视化</SegmentedControlItem>
-                  </SegmentedControl>
-                </div>
 
-                <div className="immersive-settings-body" style={{ flex: 1, overflowY: 'auto', padding: '16px 18px' }}>
+                <Tabs value={immersiveSettingsTab} onValueChange={(val) => { if (val) setImmersiveSettingsTab(val); }}>
+                  <TabsList className="isp-tabs">
+                    <TabsTrigger className="isp-tab" value="lyrics">歌词样式</TabsTrigger>
+                    <TabsTrigger className="isp-tab" value="background">背景 / 封面</TabsTrigger>
+                    <TabsTrigger className="isp-tab" value="visualizer">音频可视化</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+
+                <div className="isp-body">
                   {immersiveSettingsTab === 'lyrics' && (
                     <div className="immersive-settings-section" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       <label className="setting-row-inline">
                         <span>动画模式</span>
-                        <select className="setting-select" value={normalizeImmersiveMode(advancedLyricConfig.lyricsMode)} onChange={(e) => updateAdvancedLyricConfig({ lyricsMode: e.target.value })}>
-                          {IMMERSIVE_MODE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                        </select>
+                        <SettingSelect
+                          value={normalizeImmersiveMode(advancedLyricConfig.lyricsMode)}
+                          onChange={(value) => updateAdvancedLyricConfig({ lyricsMode: value })}
+                          options={IMMERSIVE_MODE_OPTIONS}
+                          ariaLabel="动画模式"
+                        />
                       </label>
                       <label className="setting-row-inline">
                         <span>沉浸式配色</span>
-                        <select className="setting-select" value={advancedLyricConfig.colorPreference || 'warm'}
-                          onChange={(e) => updateAdvancedLyricConfig({ colorPreference: e.target.value })}>
-                          <option value="warm">自适应暖色</option>
-                          <option value="cold">自适应冷色</option>
-                          <option value="original">专辑原色</option>
-                        </select>
+                        <SettingSelect
+                          value={advancedLyricConfig.colorPreference || 'warm'}
+                          onChange={(value) => updateAdvancedLyricConfig({ colorPreference: value })}
+                          options={[
+                            { value: 'warm', label: '自适应暖色' },
+                            { value: 'cold', label: '自适应冷色' },
+                            { value: 'original', label: '专辑原色' }
+                          ]}
+                          ariaLabel="沉浸式配色"
+                        />
                       </label>
                       <label className="setting-row-inline">
                         <span>歌词来源</span>
-                        <select className="setting-select" value={advancedLyricConfig.lyricSources || 'amll,qq,kugou'}
-                          onChange={(e) => updateAdvancedLyricConfig({ lyricSources: e.target.value })}>
-                          <option value="amll,qq,kugou">自动：时长匹配 + 逐字优先</option>
-                          <option value="netease">网易云原始歌词</option>
-                          <option value="amll">AMLL TTML 逐字</option>
-                          <option value="qq">QQ 音乐逐字</option>
-                          <option value="kugou">酷狗逐字</option>
-                          <option value="qq,kugou">QQ / 酷狗逐字</option>
-                        </select>
+                        <SettingSelect
+                          value={advancedLyricConfig.lyricSources || 'amll,qq,kugou'}
+                          onChange={(value) => updateAdvancedLyricConfig({ lyricSources: value })}
+                          options={[
+                            { value: 'amll,qq,kugou', label: '自动：时长匹配 + 逐字优先' },
+                            { value: 'netease', label: '网易云原始歌词' },
+                            { value: 'amll', label: 'AMLL TTML 逐字' },
+                            { value: 'qq', label: 'QQ 音乐逐字' },
+                            { value: 'kugou', label: '酷狗逐字' },
+                            { value: 'qq,kugou', label: 'QQ / 酷狗逐字' }
+                          ]}
+                          ariaLabel="歌词来源"
+                        />
                       </label>
 
-                      <div style={{ margin: '4px 0 8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div className="isp-actions">
                         <Button
                           type="button"
-                          variant="subtle"
-                          size="sm"
+                          variant="primary"
+                          size="md"
                           block
                           onClick={() => setIsLyricExportOpen(true)}
                         >
-                          📤 导出歌词 (LRC / 双语 / 逐字 / TXT)
+                          <Download size={14} /> 导出歌词（LRC / 双语 / 逐字 / TXT）
                         </Button>
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div className="isp-actions-row">
                           <Button
                             type="button"
                             variant="outline"
-                            size="sm"
-                            style={{ flex: 1 }}
+                            size="md"
                             onClick={() => setIsLyricAdjusterOpen(true)}
                           >
-                            ⚡ 歌词微调 / 换源
+                            <SlidersHorizontal size={14} /> 歌词微调 / 换源
                           </Button>
                           <Button
                             type="button"
                             variant="outline"
-                            size="sm"
+                            size="md"
                             onClick={() => setIsSleepTimerOpen(true)}
                           >
-                            🌙 睡眠定时
+                            <Moon size={14} /> 睡眠定时
                           </Button>
                         </div>
                       </div>
@@ -877,7 +924,7 @@ function AppContent() {
                               }}
                             >
                               <Dices size={16} />
-                              <span>🎲 おまかせ 一键重混分镜 (快捷键 R)</span>
+                              <span>おまかせ 一键重混分镜（快捷键 R）</span>
                             </Button>
 
                             {/* 方案历史步进 */}
@@ -911,50 +958,33 @@ function AppContent() {
                             </div>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
-                            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>PV 模板速选</span>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <select className="setting-select" value={advancedLyricConfig.ktvPreset || 'auto'}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  const nextPatch = { ktvPreset: val };
-                                  if (currentSong?.id && advancedLyricConfig?.ktvSongTemplates?.[String(currentSong.id)]) {
-                                    nextPatch.ktvSongTemplates = {
-                                      ...(advancedLyricConfig.ktvSongTemplates || {}),
-                                      [String(currentSong.id)]: val
-                                    };
-                                  }
-                                  updateAdvancedLyricConfig(nextPatch);
-                                  window.dispatchEvent(new CustomEvent('jizura-action', { detail: { action: 'setStyle', style: val } }));
-                                }}>
-                                <option value="auto">自动：智能匹配封面色彩</option>
-                                <option value="multi">多选：随机轮播风格池</option>
-                                {(Array.isArray(JIZURA_GALLERY_STYLES) ? JIZURA_GALLERY_STYLES : []).map(s => (
-                                  <option key={s.key} value={s.key}>{s.name} ({s.en}) · {s.tag}</option>
-                                ))}
-                              </select>
-                            </div>
+                          <div className="isp-row isp-row--wide">
+                            <span className="isp-section-title">PV 模板速选</span>
+                            <SettingSelect
+                              value={advancedLyricConfig.ktvPreset || 'auto'}
+                              onChange={applyKtvPreset}
+                              ariaLabel="PV 模板速选"
+                              options={[
+                                { value: 'auto', label: '自动：智能匹配封面色彩' },
+                                { value: 'multi', label: '多选：随机轮播风格池' },
+                                ...(Array.isArray(JIZURA_GALLERY_STYLES) ? JIZURA_GALLERY_STYLES : []).map((s) => ({
+                                  value: s.key,
+                                  label: `${s.name} (${s.en}) · ${s.tag}`
+                                }))
+                              ]}
+                            />
                           </div>
 
                           {/* JIZURA 现代视觉卡片列表 */}
-                          <div aria-label="PV 模板速选" style={{ maxHeight: '260px', overflowY: 'auto', paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <div aria-label="PV 模板速选" className="isp-pv-list">
                             {(Array.isArray(JIZURA_GALLERY_STYLES) ? JIZURA_GALLERY_STYLES : []).map((styleItem) => {
                               const value = styleItem.key;
                               const selected = (advancedLyricConfig.ktvPreset || 'auto') === value || jizuraStatus.activeStyle === value;
                               return (
                                 <div
                                   key={value}
-                                  onClick={() => {
-                                    const nextPatch = { ktvPreset: value };
-                                    if (currentSong?.id && advancedLyricConfig?.ktvSongTemplates?.[String(currentSong.id)]) {
-                                      nextPatch.ktvSongTemplates = {
-                                        ...(advancedLyricConfig.ktvSongTemplates || {}),
-                                        [String(currentSong.id)]: value
-                                      };
-                                    }
-                                    updateAdvancedLyricConfig(nextPatch);
-                                    window.dispatchEvent(new CustomEvent('jizura-action', { detail: { action: 'setStyle', style: value } }));
-                                  }}
+                                  onClick={() => applyKtvPreset(value)}
+                                  className={`isp-pv-card ${selected ? 'is-selected' : ''}`}
                                   style={{
                                     display: 'flex',
                                     alignItems: 'center',
@@ -1198,25 +1228,33 @@ function AppContent() {
                           </div>
                           <label className="setting-row-inline">
                             <span>顶部标题字体</span>
-                            <select className="setting-select" value={advancedLyricConfig.titleFontFamily || 'Outfit'}
-                              onChange={(e) => updateAdvancedLyricConfig({ titleFontFamily: e.target.value })}>
-                              <option value="Inter">Inter / 思源黑体</option>
-                              <option value="Outfit">Outfit 标题字体</option>
-                              <option value="Noto Serif SC">思源宋体</option>
-                              <option value="Microsoft YaHei">微软雅黑</option>
-                              <option value="KaiTi">楷体</option>
-                            </select>
+                            <SettingSelect
+                              value={advancedLyricConfig.titleFontFamily || 'Newsreader'}
+                              onChange={(value) => updateAdvancedLyricConfig({ titleFontFamily: value })}
+                              options={[
+                                { value: 'Newsreader', label: 'Newsreader (编辑衬线)' },
+                                { value: 'Instrument Sans', label: 'Instrument Sans (现代无衬线)' },
+                                { value: 'Noto Serif SC', label: '思源宋体' },
+                                { value: 'Microsoft YaHei', label: '微软雅黑' },
+                                { value: 'KaiTi', label: '楷体' }
+                              ]}
+                              ariaLabel="顶部标题字体"
+                            />
                           </label>
                           <label className="setting-row-inline">
                             <span>滚动歌词字体</span>
-                            <select className="setting-select" value={advancedLyricConfig.fontFamily || 'Inter'}
-                              onChange={(e) => updateAdvancedLyricConfig({ fontFamily: e.target.value })}>
-                              <option value="Inter">Inter / 思源黑体</option>
-                              <option value="Outfit">Outfit 标题字体</option>
-                              <option value="Noto Serif SC">思源宋体</option>
-                              <option value="Microsoft YaHei">微软雅黑</option>
-                              <option value="KaiTi">楷体</option>
-                            </select>
+                            <SettingSelect
+                              value={advancedLyricConfig.fontFamily || 'Instrument Sans'}
+                              onChange={(value) => updateAdvancedLyricConfig({ fontFamily: value })}
+                              options={[
+                                { value: 'Instrument Sans', label: 'Instrument Sans (现代无衬线)' },
+                                { value: 'Newsreader', label: 'Newsreader (编辑衬线)' },
+                                { value: 'Noto Serif SC', label: '思源宋体' },
+                                { value: 'Microsoft YaHei', label: '微软雅黑' },
+                                { value: 'KaiTi', label: '楷体' }
+                              ]}
+                              ariaLabel="滚动歌词字体"
+                            />
                           </label>
                           <SettingSwitchRow
                             label="歌词辉光效果"
@@ -1258,12 +1296,16 @@ function AppContent() {
                           />
                           <label className="setting-row-inline">
                             <span>气泡对齐方式</span>
-                            <select className="setting-select" value={advancedLyricConfig.bubbleAlign || 'alternate'}
-                              onChange={(e) => updateAdvancedLyricConfig({ bubbleAlign: e.target.value })}>
-                              <option value="alternate">交替对话</option>
-                              <option value="left">全左对齐</option>
-                              <option value="right">全右对齐</option>
-                            </select>
+                            <SettingSelect
+                              value={advancedLyricConfig.bubbleAlign || 'alternate'}
+                              onChange={(value) => updateAdvancedLyricConfig({ bubbleAlign: value })}
+                              options={[
+                                { value: 'alternate', label: '交替对话' },
+                                { value: 'left', label: '全左对齐' },
+                                { value: 'right', label: '全右对齐' }
+                              ]}
+                              ariaLabel="气泡对齐方式"
+                            />
                           </label>
                         </>
                       )}
@@ -1391,13 +1433,17 @@ function AppContent() {
                     <div className="immersive-settings-section" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       <label className="setting-row-inline">
                         <span>背景模式</span>
-                        <select className="setting-select" value={advancedLyricConfig.backgroundMode || 'cover'}
-                          onChange={(e) => updateAdvancedLyricConfig({ backgroundMode: e.target.value })}>
-                          <option value="cover">模糊封面</option>
-                          <option value="soft">柔和封面</option>
-                          <option value="theme">主题渐变</option>
-                          <option value="none">纯净背景</option>
-                        </select>
+                        <SettingSelect
+                          value={advancedLyricConfig.backgroundMode || 'cover'}
+                          onChange={(value) => updateAdvancedLyricConfig({ backgroundMode: value })}
+                          options={[
+                            { value: 'cover', label: '模糊封面' },
+                            { value: 'soft', label: '柔和封面' },
+                            { value: 'theme', label: '主题渐变' },
+                            { value: 'none', label: '纯净背景' }
+                          ]}
+                          ariaLabel="背景模式"
+                        />
                       </label>
                       <SettingSwitchRow
                         label="显示专辑封面"
@@ -1420,14 +1466,18 @@ function AppContent() {
                     <div className="immersive-settings-section" style={{ overflowY: 'auto', maxHeight: '380px', paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       <label className="setting-row-inline">
                         <span>波形样式</span>
-                        <select className="setting-select" value={currentModeVisualizerStyle}
-                          onChange={(e) => updateCurrentModeVisualizerStyle(e.target.value)}>
-                          <option value="mode">跟随当前模式</option>
-                          <option value="bars">底部律动</option>
-                          <option value="wave">流动波形</option>
-                          <option value="circle">环形脉冲</option>
-                          <option value="off">关闭</option>
-                        </select>
+                        <SettingSelect
+                          value={currentModeVisualizerStyle}
+                          onChange={updateCurrentModeVisualizerStyle}
+                          options={[
+                            { value: 'mode', label: '跟随当前模式' },
+                            { value: 'bars', label: '底部律动' },
+                            { value: 'wave', label: '流动波形' },
+                            { value: 'circle', label: '环形脉冲' },
+                            { value: 'off', label: '关闭' }
+                          ]}
+                          ariaLabel="波形样式"
+                        />
                       </label>
                       <SettingSwitchRow
                         label="启用音频可视化"
@@ -1488,12 +1538,16 @@ function AppContent() {
                           <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)', marginTop: '8px', marginBottom: '4px', borderBottom: '1px solid var(--divider-color)', paddingBottom: '4px' }}>环形频谱参数 (常规模式)</div>
                           <label className="setting-row-inline">
                             <span>环形样式</span>
-                            <select className="setting-select" value={advancedLyricConfig.ringStyle || 'radial'}
-                              onChange={(e) => updateAdvancedLyricConfig({ ringStyle: e.target.value })}>
-                              <option value="radial">辐射线条</option>
-                              <option value="particle">发光粒子</option>
-                              <option value="wave">连续波环</option>
-                            </select>
+                            <SettingSelect
+                              value={advancedLyricConfig.ringStyle || 'radial'}
+                              onChange={(value) => updateAdvancedLyricConfig({ ringStyle: value })}
+                              options={[
+                                { value: 'radial', label: '辐射线条' },
+                                { value: 'particle', label: '发光粒子' },
+                                { value: 'wave', label: '连续波环' }
+                              ]}
+                              ariaLabel="环形样式"
+                            />
                           </label>
                           <SettingSliderRow
                             label="采样精度（线条/粒子数）"
@@ -1533,12 +1587,16 @@ function AppContent() {
                           />
                           <label className="setting-row-inline">
                             <span>配色方案</span>
-                            <select className="setting-select" value={advancedLyricConfig.ringColorMode || 'adaptive'}
-                              onChange={(e) => updateAdvancedLyricConfig({ ringColorMode: e.target.value })}>
-                              <option value="adaptive">封面自适应</option>
-                              <option value="theme">主题单色</option>
-                              <option value="custom">双色渐变</option>
-                            </select>
+                            <SettingSelect
+                              value={advancedLyricConfig.ringColorMode || 'adaptive'}
+                              onChange={(value) => updateAdvancedLyricConfig({ ringColorMode: value })}
+                              options={[
+                                { value: 'adaptive', label: '封面自适应' },
+                                { value: 'theme', label: '主题单色' },
+                                { value: 'custom', label: '双色渐变' }
+                              ]}
+                              ariaLabel="配色方案"
+                            />
                           </label>
                           {advancedLyricConfig.ringColorMode === 'custom' && (
                             <div className="setting-row-inline">
@@ -1848,6 +1906,7 @@ function AppContent() {
           isOpen={isLyricAdjusterOpen}
           onClose={() => setIsLyricAdjusterOpen(false)}
           currentSong={currentSong}
+          lyrics={currentSongLyrics}
         />
         <LyricExportModal
           isOpen={isLyricExportOpen}
@@ -1879,6 +1938,8 @@ function AppContent() {
             />
           )}
         </AnimatePresence>
+        <Toaster theme={colorMode === 'light' ? 'light' : 'dark'} />
+        <CommandPalette open={isCommandOpen} onOpenChange={setIsCommandOpen} />
       </div>
     </div>
   );

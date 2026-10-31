@@ -9,6 +9,7 @@ import { createHash } from 'crypto';
 import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
 import { spawn } from 'child_process';
+import { parseFile } from 'music-metadata';
 import KuroshiroPkg from 'kuroshiro';
 import KuromojiPkg from 'kuroshiro-analyzer-kuromoji';
 
@@ -127,7 +128,7 @@ let mainRuntimeSequence = 0;
 const cacheDownloadInFlight = new Map();
 const cachePruneLastRun = new Map();
 const cacheResourcePaths = new Map();
-const UPDATE_REPOSITORY = 'lyb82ndkf-lab/ichigo-music';
+const UPDATE_REPOSITORY = 'sa1to-asuka/ICHIGOMUSIC';
 
 const mainNativeConsole = {
   log: console.log.bind(console),
@@ -1791,6 +1792,41 @@ function createWindow() {
     }
   });
 
+  ipcMain.removeHandler('save-text-file');
+  ipcMain.handle('save-text-file', async (_event, { title, defaultFilename, content, filters } = {}) => {
+    try {
+      const result = await dialog.showSaveDialog(mainWindow, {
+        title: title || '保存文件',
+        defaultPath: defaultFilename || 'export.txt',
+        filters: filters || [{ name: '所有文件 (*.*)', extensions: ['*'] }]
+      });
+      if (result.canceled || !result.filePath) return { success: false, canceled: true };
+      await fs.promises.writeFile(result.filePath, content || '', 'utf8');
+      return { success: true, filePath: result.filePath };
+    } catch (err) {
+      console.error('Failed to save text file:', err);
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  ipcMain.removeHandler('open-text-file');
+  ipcMain.handle('open-text-file', async (_event, { title, filters } = {}) => {
+    try {
+      const result = await dialog.showOpenDialog(mainWindow, {
+        title: title || '打开文件',
+        properties: ['openFile'],
+        filters: filters || [{ name: '所有文件 (*.*)', extensions: ['*'] }]
+      });
+      if (result.canceled || !result.filePaths?.length) return { success: false, canceled: true };
+      const filePath = result.filePaths[0];
+      const content = await fs.promises.readFile(filePath, 'utf8');
+      return { success: true, filePath, content };
+    } catch (err) {
+      console.error('Failed to open text file:', err);
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
   // =========================================================================
   // Durable C-Drive Listening History Vault IPC Handlers
   // =========================================================================
@@ -1841,7 +1877,7 @@ function createWindow() {
   ipcMain.handle('scan-local-music-folder', async (_event, folderPath) => {
     if (!folderPath || typeof folderPath !== 'string') return [];
     const supportedExts = new Set(['.mp3', '.flac', '.wav', '.ogg', '.m4a', '.aac', '.opus', '.ape', '.wma']);
-    const songs = [];
+    const files = [];
 
     async function walk(dir, depth = 0) {
       if (depth > 6) return;
@@ -1851,43 +1887,8 @@ function createWindow() {
           const fullPath = path.join(dir, entry.name);
           if (entry.isDirectory()) {
             await walk(fullPath, depth + 1);
-          } else if (entry.isFile()) {
-            const ext = path.extname(entry.name).toLowerCase();
-            if (supportedExts.has(ext)) {
-              const baseName = path.basename(entry.name, ext);
-              let artist = '未知歌手';
-              let title = baseName;
-              if (baseName.includes(' - ')) {
-                const parts = baseName.split(' - ');
-                artist = parts[0].trim();
-                title = parts.slice(1).join(' - ').trim();
-              } else if (baseName.includes('-')) {
-                const parts = baseName.split('-');
-                artist = parts[0].trim();
-                title = parts.slice(1).join('-').trim();
-              }
-
-              const stats = await fs.promises.stat(fullPath).catch(() => null);
-              const fileUrl = 'file:///' + fullPath.replace(/\\/g, '/');
-              const songId = `local_${Buffer.from(fullPath).toString('hex').slice(0, 24)}`;
-
-              songs.push({
-                id: songId,
-                name: title,
-                title: title,
-                ar: [{ name: artist }],
-                artists: [{ name: artist }],
-                artist: artist,
-                al: { name: path.basename(dir), picUrl: '' },
-                album: path.basename(dir),
-                duration: 0,
-                durationMs: 0,
-                url: fileUrl,
-                localPath: fullPath,
-                fileSize: stats?.size || 0,
-                isLocal: true,
-              });
-            }
+          } else if (entry.isFile() && supportedExts.has(path.extname(entry.name).toLowerCase())) {
+            files.push(fullPath);
           }
         }
       } catch (err) {
@@ -1896,7 +1897,92 @@ function createWindow() {
     }
 
     await walk(folderPath);
-    return songs;
+
+    const coverDir = path.join(app.getPath('userData'), 'local-covers');
+    await fs.promises.mkdir(coverDir, { recursive: true }).catch(() => {});
+
+    const songs = [];
+    let cursor = 0;
+
+    const parseOne = async (fullPath) => {
+      const ext = path.extname(fullPath).toLowerCase();
+      const dir = path.dirname(fullPath);
+      const baseName = path.basename(fullPath, ext);
+      let artist = '未知歌手';
+      let title = baseName;
+      let album = path.basename(dir);
+      let durationMs = 0;
+      let picUrl = '';
+
+      if (baseName.includes(' - ')) {
+        const parts = baseName.split(' - ');
+        artist = parts[0].trim();
+        title = parts.slice(1).join(' - ').trim();
+      } else if (baseName.includes('-')) {
+        const parts = baseName.split('-');
+        artist = parts[0].trim();
+        title = parts.slice(1).join('-').trim();
+      }
+
+      try {
+        const meta = await parseFile(fullPath, { duration: true, skipCovers: false });
+        const common = meta?.common || {};
+        const format = meta?.format || {};
+        if (common.title?.trim()) title = common.title.trim();
+        const metaArtist = common.artist?.trim()
+          || (Array.isArray(common.artists) ? common.artists.filter(Boolean).join(' / ') : '');
+        if (metaArtist) artist = metaArtist;
+        if (common.album?.trim()) album = common.album.trim();
+        if (Number.isFinite(format.duration) && format.duration > 0) {
+          durationMs = Math.round(format.duration * 1000);
+        }
+        const picture = Array.isArray(common.picture) ? common.picture[0] : null;
+        if (picture?.data?.length) {
+          const coverId = Buffer.from(fullPath).toString('hex').slice(0, 24);
+          const coverExt = String(picture.format || '').toLowerCase().includes('png') ? '.png' : '.jpg';
+          const coverPath = path.join(coverDir, `${coverId}${coverExt}`);
+          if (!fs.existsSync(coverPath)) {
+            await fs.promises.writeFile(coverPath, Buffer.from(picture.data));
+          }
+          picUrl = pathToFileURL(coverPath).href;
+        }
+      } catch (err) {
+        // Unsupported/corrupt tags: keep the filename-derived fields.
+      }
+
+      const stats = await fs.promises.stat(fullPath).catch(() => null);
+      const fileUrl = 'file:///' + fullPath.replace(/\\/g, '/');
+      const songId = `local_${Buffer.from(fullPath).toString('hex').slice(0, 24)}`;
+
+      songs.push({
+        id: songId,
+        name: title,
+        title,
+        ar: [{ name: artist }],
+        artists: [{ name: artist }],
+        artist,
+        al: { name: album, picUrl },
+        album,
+        duration: Math.round(durationMs / 1000),
+        durationMs,
+        dt: durationMs,
+        url: fileUrl,
+        localPath: fullPath,
+        fileSize: stats?.size || 0,
+        isLocal: true,
+      });
+    };
+
+    const worker = async () => {
+      while (cursor < files.length) {
+        const next = files[cursor];
+        cursor += 1;
+        await parseOne(next);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(4, files.length || 1) }, worker));
+
+    return songs.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'));
   });
   ipcMain.removeHandler('desktop-capturer-get-sources');
   ipcMain.handle('desktop-capturer-get-sources', async (_event, opts) => {

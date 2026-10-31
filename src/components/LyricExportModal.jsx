@@ -18,6 +18,7 @@ import {
   AlertCircle,
   Loader2
 } from 'lucide-react';
+import { Modal, ModalContent } from './ui';
 import {
   generateLyricExport,
   sanitizeFilename,
@@ -301,47 +302,30 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 10000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(0, 0, 0, 0.72)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        animation: 'fadeIn 0.2s ease-out'
-      }}
-      onClick={onClose}
-    >
-      <div
+    <Modal open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <ModalContent
+        showClose={false}
+        aria-describedby={undefined}
+        className="lyric-export-dialog"
         style={{
           width: '780px',
           maxWidth: '94vw',
           maxHeight: '88vh',
-          background: 'linear-gradient(145deg, rgba(26, 30, 42, 0.96), rgba(18, 20, 28, 0.98))',
-          border: '1px solid rgba(255, 255, 255, 0.16)',
-          borderRadius: '20px',
-          boxShadow: '0 28px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06)',
-          color: '#fff',
+          padding: 0,
+          gap: 0,
           overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
           position: 'relative'
         }}
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div
           style={{
             padding: '20px 24px 16px',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+            borderBottom: '1px solid var(--card-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: 'rgba(255, 255, 255, 0.02)'
+            background: 'var(--glass-bg)'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -354,7 +338,7 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(255, 64, 129, 0.35)'
+                boxShadow: '0 4px 12px var(--primary-glow)'
               }}
             >
               <Download size={20} color="#fff" />
@@ -369,8 +353,8 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
                     fontSize: '11px',
                     padding: '2px 8px',
                     borderRadius: '12px',
-                    background: 'rgba(255, 255, 255, 0.12)',
-                    color: 'rgba(255, 255, 255, 0.85)'
+                    background: 'var(--glass-bg-strong)',
+                    color: 'var(--text-main)'
                   }}
                 >
                   {stats.filename}
@@ -380,7 +364,7 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
                 style={{
                   margin: '4px 0 0',
                   fontSize: '13px',
-                  color: 'rgba(255, 255, 255, 0.6)',
+                  color: 'var(--text-muted)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px'
@@ -394,9 +378,11 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
           </div>
 
           <button
+            type="button"
+            aria-label="关闭导出歌词"
             onClick={onClose}
             style={{
-              background: 'rgba(255, 255, 255, 0.06)',
+              background: 'var(--glass-bg)',
               border: 'none',
               borderRadius: '50%',
               width: '32px',
@@ -404,17 +390,17 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'rgba(255, 255, 255, 0.7)',
+              color: 'var(--text-muted)',
               cursor: 'pointer',
               transition: 'all 0.2s'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+              e.currentTarget.style.background = 'var(--glass-bg-strong)';
               e.currentTarget.style.color = '#fff';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
-              e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)';
+              e.currentTarget.style.background = 'var(--glass-bg)';
+              e.currentTarget.style.color = 'var(--text-muted)';
             }}
             title="关闭 (Esc)"
           >
@@ -427,7 +413,7 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
           
           {/* Format Selector Pills */}
           <div>
-            <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '10px', color: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '10px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <FileCode size={14} color="var(--primary, #ff4081)" />
               <span>选择导出格式</span>
             </div>
@@ -442,9 +428,9 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
                     style={{
                       padding: '12px 10px',
                       borderRadius: '12px',
-                      border: isSelected ? '1.5px solid var(--primary, #ff4081)' : '1px solid rgba(255, 255, 255, 0.1)',
-                      background: isSelected ? 'rgba(255, 64, 129, 0.16)' : 'rgba(255, 255, 255, 0.04)',
-                      color: isSelected ? '#fff' : 'rgba(255, 255, 255, 0.75)',
+                      border: isSelected ? '1.5px solid var(--primary, #ff4081)' : '1px solid var(--card-border)',
+                      background: isSelected ? 'var(--primary-subtle)' : 'var(--glass-bg)',
+                      color: isSelected ? '#fff' : 'var(--text-muted)',
                       cursor: 'pointer',
                       display: 'flex',
                       flexDirection: 'column',
@@ -453,12 +439,12 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
                       transition: 'all 0.2s ease',
                       textAlign: 'left',
                       position: 'relative',
-                      boxShadow: isSelected ? '0 0 16px rgba(255, 64, 129, 0.2)' : 'none'
+                      boxShadow: isSelected ? '0 0 16px var(--primary-glow)' : 'none'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <IconComp size={15} color={isSelected ? 'var(--primary, #ff4081)' : 'rgba(255,255,255,0.6)'} />
+                        <IconComp size={15} color={isSelected ? 'var(--primary, #ff4081)' : 'var(--text-muted)'} />
                         <span style={{ fontSize: '13px', fontWeight: 600 }}>{fmt.label}</span>
                       </div>
                       <span
@@ -466,15 +452,15 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
                           fontSize: '10px',
                           padding: '1px 6px',
                           borderRadius: '8px',
-                          background: isSelected ? 'var(--primary, #ff4081)' : 'rgba(255,255,255,0.1)',
-                          color: '#fff',
+                          background: isSelected ? 'var(--primary, #ff4081)' : 'var(--glass-bg-hover)',
+                          color: isSelected ? 'var(--primary-text, #fff)' : 'var(--text-muted)',
                           fontWeight: 500
                         }}
                       >
                         {fmt.ext}
                       </span>
                     </div>
-                    <span style={{ fontSize: '11px', color: isSelected ? 'rgba(255, 255, 255, 0.85)' : 'rgba(255, 255, 255, 0.45)', lineHeight: 1.3 }}>
+                    <span style={{ fontSize: '11px', color: isSelected ? 'var(--text-main)' : 'var(--text-muted)', lineHeight: 1.3 }}>
                       {fmt.badge}
                     </span>
                   </button>
@@ -488,14 +474,14 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
             style={{
               padding: '14px 16px',
               borderRadius: '14px',
-              background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: 'var(--glass-bg)',
+              border: '1px solid var(--card-border)',
               display: 'flex',
               flexDirection: 'column',
               gap: '12px'
             }}
           >
-            <div style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.75)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Sliders size={13} />
               <span>导出参数定制</span>
             </div>
@@ -566,17 +552,17 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
 
             {/* Japanese Furigana mode selector (Only visible for Japanese songs when enabled) */}
             {isJpSong && includeFurigana && (
-              <div style={{ paddingTop: '8px', borderTop: '1px dashed rgba(255, 255, 255, 0.1)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)' }}>假名注音呈现形式：</span>
+              <div style={{ paddingTop: '8px', borderTop: '1px dashed var(--divider-color)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>假名注音呈现形式：</span>
                 <select
                   value={furiganaMode}
                   onChange={(e) => setFuriganaMode(e.target.value)}
                   style={{
                     padding: '4px 10px',
                     borderRadius: '8px',
-                    background: 'rgba(0, 0, 0, 0.3)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#fff',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--card-border)',
+                    color: 'var(--text-main)',
                     fontSize: '12px',
                     cursor: 'pointer'
                   }}
@@ -591,17 +577,17 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
 
             {/* Bilingual layout sub-selector when bilingual format is selected */}
             {selectedFormat === 'bilingual_lrc' && (
-              <div style={{ paddingTop: '8px', borderTop: '1px dashed rgba(255, 255, 255, 0.1)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)' }}>双语排版样式：</span>
+              <div style={{ paddingTop: '8px', borderTop: '1px dashed var(--divider-color)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>双语排版样式：</span>
                 <select
                   value={bilingualMode}
                   onChange={(e) => setBilingualMode(e.target.value)}
                   style={{
                     padding: '4px 10px',
                     borderRadius: '8px',
-                    background: 'rgba(0, 0, 0, 0.3)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#fff',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--card-border)',
+                    color: 'var(--text-main)',
                     fontSize: '12px',
                     cursor: 'pointer'
                   }}
@@ -616,7 +602,7 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
 
           {/* Live Preview Box */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', color: 'rgba(255, 255, 255, 0.65)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-muted)' }}>
               <span>实时歌词预览</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span>共 {stats.linesCount} 行</span>
@@ -638,14 +624,14 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
             <div
               style={{
                 height: '190px',
-                background: 'rgba(0, 0, 0, 0.45)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: 'var(--color-sunken, var(--bg-gradient-start))',
+                border: '1px solid var(--card-border)',
                 borderRadius: '12px',
                 padding: '12px 14px',
                 fontFamily: 'Consolas, Monaco, "Courier New", monospace',
                 fontSize: '12px',
                 lineHeight: 1.55,
-                color: 'rgba(255, 255, 255, 0.9)',
+                color: 'var(--text-main)',
                 overflowY: 'auto',
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-all',
@@ -693,8 +679,8 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
         <div
           style={{
             padding: '14px 24px 18px',
-            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-            background: 'rgba(0, 0, 0, 0.2)',
+            borderTop: '1px solid var(--card-border)',
+            background: 'var(--surface-bg)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -707,9 +693,9 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
             style={{
               padding: '10px 18px',
               borderRadius: '10px',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              background: copySuccess ? 'rgba(76, 175, 80, 0.25)' : 'rgba(255, 255, 255, 0.08)',
-              color: copySuccess ? '#a5d6a7' : '#fff',
+              border: '1px solid var(--glass-bg-strong)',
+              background: copySuccess ? 'rgba(76, 175, 80, 0.25)' : 'var(--glass-bg-hover)',
+              color: copySuccess ? '#a5d6a7' : 'var(--text-main)',
               fontSize: '13px',
               fontWeight: 500,
               cursor: 'pointer',
@@ -730,15 +716,15 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
               style={{
                 padding: '10px 18px',
                 borderRadius: '10px',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
+                border: '1px solid var(--card-border)',
                 background: 'transparent',
-                color: 'rgba(255, 255, 255, 0.75)',
+                color: 'var(--text-muted)',
                 fontSize: '13px',
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
               onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255, 255, 255, 0.75)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
             >
               取消
             </button>
@@ -751,15 +737,15 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
                 padding: '10px 22px',
                 borderRadius: '10px',
                 border: 'none',
-                background: 'linear-gradient(135deg, var(--primary, #ff4081), #e91e63)',
-                color: '#fff',
+                background: 'var(--primary)',
+                color: 'var(--primary-text, #fff)',
                 fontSize: '13px',
                 fontWeight: 600,
                 cursor: isExporting ? 'wait' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                boxShadow: '0 4px 16px rgba(255, 64, 129, 0.4)',
+                boxShadow: '0 4px 16px var(--primary-glow)',
                 transition: 'all 0.2s',
                 opacity: isExporting ? 0.8 : 1
               }}
@@ -769,7 +755,7 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </ModalContent>
+    </Modal>
   );
 }

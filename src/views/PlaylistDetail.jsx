@@ -1,7 +1,10 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useApp } from '../context/AppContext';
 import { api } from '../utils/api';
 import { Play, Heart, MessageSquare, Clock, HeartPulse, Sparkles, X, ChevronLeft, ChevronRight, ThumbsUp } from 'lucide-react';
+import SongContextMenu from '../components/SongContextMenu';
+import { Modal, ModalContent } from '../components/ui';
 
 function SongInlineComments({ song, onClose }) {
   const [loading, setLoading] = useState(true);
@@ -130,27 +133,20 @@ export default function PlaylistDetail() {
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [expandedSongId, setExpandedSongId] = useState(null);
-  const [visibleCount, setVisibleCount] = useState(100);
+  const [commentsSong, setCommentsSong] = useState(null);
+  const tableRef = useRef(null);
+  const [scrollParent, setScrollParent] = useState(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: songs.length,
+    getScrollElement: () => scrollParent,
+    estimateSize: () => 48,
+    overscan: 10
+  });
 
   useEffect(() => {
-    setVisibleCount(100);
-  }, [viewData]);
-
-  useEffect(() => {
-    const handleScroll = (e) => {
-      const target = e.target;
-      if (!target || !target.scrollHeight) return;
-
-      const { scrollTop, scrollHeight, clientHeight } = target;
-      if (scrollHeight - scrollTop - clientHeight < 400) {
-        setVisibleCount(prev => Math.min(songs.length, prev + 100));
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, true);
-    return () => window.removeEventListener('scroll', handleScroll, true);
-  }, [songs.length]);
+    setScrollParent(tableRef.current?.closest('.view-scroll-container') || null);
+  }, [songs.length, loading]);
 
   useEffect(() => {
     if (!viewData?.id) return;
@@ -159,7 +155,7 @@ export default function PlaylistDetail() {
     const fetchDetails = async () => {
       setLoading(true);
       setLoadingMore(false);
-      setExpandedSongId(null);
+      setCommentsSong(null);
       try {
         const detailRes = await api.getPlaylistDetail(viewData.id);
         if (cancelled) return;
@@ -249,6 +245,12 @@ export default function PlaylistDetail() {
     );
   }
 
+  const virtualItems = rowVirtualizer.getVirtualItems();
+  const paddingTop = virtualItems.length > 0 ? virtualItems[0].start : 0;
+  const paddingBottom = virtualItems.length > 0
+    ? rowVirtualizer.getTotalSize() - virtualItems[virtualItems.length - 1].end
+    : 0;
+
   return (
     <div className="view-container">
       {/* Playlist Info Header Card */}
@@ -260,7 +262,7 @@ export default function PlaylistDetail() {
         />
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <span style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--primary)', letterSpacing: '1.5px', fontWeight: 700 }}>歌单</span>
-          <h1 style={{ fontFamily: 'var(--font-title)', fontSize: '28px', fontWeight: 800, color: 'var(--text-active)', lineHeight: 1.2 }}>{playlist.name}</h1>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--type-h1-size, 32px)', fontWeight: 'var(--weight-semibold, 600)', color: 'var(--text-active)', lineHeight: 'var(--type-h1-line, 1.18)' }}>{playlist.name}</h1>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <img 
@@ -316,7 +318,7 @@ export default function PlaylistDetail() {
 
       {/* Main Track Table */}
       <div style={{ width: '100%', overflowX: 'auto' }}>
-        <table className="songs-table" style={{ marginTop: 0, width: '100%' }}>
+        <table className="songs-table" ref={tableRef} style={{ marginTop: 0, width: '100%' }}>
           <thead>
             <tr>
               <th style={{ width: '34%' }}>歌名</th>
@@ -326,12 +328,22 @@ export default function PlaylistDetail() {
             </tr>
           </thead>
           <tbody>
-            {songs.slice(0, visibleCount).map((song, index) => {
+            {paddingTop > 0 && (
+              <tr aria-hidden="true">
+                <td colSpan={4} style={{ height: paddingTop, padding: 0, border: 0 }} />
+              </tr>
+            )}
+            {virtualItems.map((virtualRow) => {
+              const index = virtualRow.index;
+              const song = songs[index];
               const isLiked = likedSongIds.has(song.id);
-              const isCommentsOpen = expandedSongId === song.id;
+              const isCommentsOpen = commentsSong?.id === song.id;
               return (
                 <React.Fragment key={song.id}>
-                  <tr 
+                  <SongContextMenu song={song} queue={songs}>
+                  <tr
+                    ref={rowVirtualizer.measureElement}
+                    data-index={index}
                     className="song-row"
                     onDoubleClick={() => playSong(song, songs)}
                   >
@@ -391,7 +403,7 @@ export default function PlaylistDetail() {
                           className={`song-comment-toggle-btn ${isCommentsOpen ? 'active' : ''}`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setExpandedSongId(prev => (prev === song.id ? null : song.id));
+                            setCommentsSong(prev => (prev?.id === song.id ? null : song));
                           }}
                           title={isCommentsOpen ? '收起热评' : '查看这首歌的热评'}
                         >
@@ -401,22 +413,26 @@ export default function PlaylistDetail() {
                       </div>
                     </td>
                   </tr>
-                  {isCommentsOpen && (
-                    <tr className="song-inline-comments-tr">
-                      <td colSpan={4}>
-                        <SongInlineComments
-                          song={song}
-                          onClose={() => setExpandedSongId(null)}
-                        />
-                      </td>
-                    </tr>
-                  )}
+                  </SongContextMenu>
                 </React.Fragment>
               );
             })}
+            {paddingBottom > 0 && (
+              <tr aria-hidden="true">
+                <td colSpan={4} style={{ height: paddingBottom, padding: 0, border: 0 }} />
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
+
+      <Modal open={Boolean(commentsSong)} onOpenChange={(open) => { if (!open) setCommentsSong(null); }}>
+        <ModalContent className="song-comments-dialog" showClose={false} aria-describedby={undefined}>
+          {commentsSong && (
+            <SongInlineComments song={commentsSong} onClose={() => setCommentsSong(null)} />
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

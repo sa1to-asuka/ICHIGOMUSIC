@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useApp } from '../context/AppContext';
 import { api } from '../utils/api';
-import { Clock, Search, RefreshCw, Check, Zap, AlertCircle, X } from 'lucide-react';
-import { parseLrc, parseYrc, mergeTranslation, mergeRomaji, computeLineDurations } from '../utils/lyrics/lyricParser';
+import { Clock, Search, RefreshCw, Check, AlertCircle, X, Save } from 'lucide-react';
+import { computeLineDurations } from '../utils/lyrics/lyricParser';
 import { normalizeMatchedLines, assessLyricQuality } from '../hooks/useLyricEngine';
+import {
+  Modal, ModalContent, ModalHeader, ModalTitle, ModalClose, ModalBody,
+  Button, IconButton, Input, SegmentedControl, SegmentedControlItem
+} from './ui';
 
-export default function LyricAdjusterModal({ isOpen, onClose, currentSong }) {
-  const { advancedLyricConfig, saveAdvancedLyricConfig, currentSong: activeSong } = useApp();
+export default function LyricAdjusterModal({ isOpen, onClose, currentSong, lyrics = [] }) {
+  const { advancedLyricConfig, saveAdvancedLyricConfig, currentSong: activeSong, audioElement } = useApp();
   const song = currentSong || activeSong;
 
-  const [activeTab, setActiveTab] = useState('offset'); // 'offset' | 'search'
+  const [activeTab, setActiveTab] = useState('offset');
   const [searchTitle, setSearchTitle] = useState('');
   const [searchArtist, setSearchArtist] = useState('');
   const [searchSource, setSearchSource] = useState('amll,qq,kugou,netease');
@@ -17,8 +22,21 @@ export default function LyricAdjusterModal({ isOpen, onClose, currentSong }) {
   const [results, setResults] = useState([]);
   const [error, setError] = useState('');
   const [appliedMsg, setAppliedMsg] = useState('');
+  const [lineDrafts, setLineDrafts] = useState([]);
+  const [lineDirty, setLineDirty] = useState(false);
 
   const currentOffset = advancedLyricConfig?.globalOffset || 0;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setLineDrafts(Array.isArray(lyrics) ? lyrics.map((line) => ({ ...line })) : []);
+    setLineDirty(false);
+  }, [isOpen, song?.id]);
+
+  useEffect(() => {
+    if (!isOpen || lineDrafts.length > 0 || !Array.isArray(lyrics) || lyrics.length === 0) return;
+    setLineDrafts(lyrics.map((line) => ({ ...line })));
+  }, [isOpen, lyrics, lineDrafts.length]);
 
   useEffect(() => {
     if (song) {
@@ -60,7 +78,7 @@ export default function LyricAdjusterModal({ isOpen, onClose, currentSong }) {
           id: 'matched_1',
           source: res.source || 'multi-source',
           quality: assessLyricQuality(lines, song?.duration ? song.duration / 1000 : 0),
-          lines: lines,
+          lines,
           raw: res
         }]);
       } else {
@@ -76,333 +94,233 @@ export default function LyricAdjusterModal({ isOpen, onClose, currentSong }) {
 
   const handleApplyLyrics = (candidate) => {
     if (!song?.id || !candidate?.lines) return;
+    const lines = candidate.lines.map((line) => ({ ...line }));
+    const overrideKey = `ichigo_lyrics_override_${song.id}`;
     const cacheKey = `ichigo_lyrics_parsed_${song.id}`;
     try {
-      localStorage.setItem(cacheKey, JSON.stringify(candidate.lines));
+      localStorage.setItem(overrideKey, JSON.stringify(lines));
+      localStorage.setItem(cacheKey, JSON.stringify(lines));
       if (window.electronAPI?.writeLyricCache) {
         window.electronAPI.writeLyricCache({
-          key: cacheKey,
-          data: candidate.lines,
+          key: overrideKey,
+          data: lines,
         }).catch(() => {});
       }
-      setAppliedMsg('歌词已成功应用并持久化！即将刷新显示...');
-      setTimeout(() => {
-        onClose();
-        window.location.reload();
-      }, 900);
+      window.dispatchEvent(new CustomEvent('ichigo-lyrics-updated', {
+        detail: { songId: song.id, lines }
+      }));
+      setLineDrafts(lines.map((line) => ({ ...line })));
+      setAppliedMsg('歌词已应用并即时生效');
+      setTimeout(() => onClose(), 600);
     } catch (e) {
       setError('保存歌词缓存失败：' + e.message);
     }
   };
 
+  const nudgeLine = (index, delta) => {
+    setLineDrafts((prev) => prev.map((line, i) => (
+      i === index
+        ? { ...line, time: Math.max(0, Math.round((Number(line.time || 0) + delta) * 1000) / 1000) }
+        : line
+    )));
+    setLineDirty(true);
+  };
+
+  const handleSaveLineEdits = () => {
+    if (!song?.id) return;
+    const lines = lineDrafts.map((line) => ({
+      ...line,
+      time: Math.max(0, Number(line.time) || 0)
+    }));
+    const overrideKey = `ichigo_lyrics_override_${song.id}`;
+    try {
+      localStorage.setItem(overrideKey, JSON.stringify(lines));
+      localStorage.setItem(`ichigo_lyrics_parsed_${song.id}`, JSON.stringify(lines));
+      if (window.electronAPI?.writeLyricCache) {
+        window.electronAPI.writeLyricCache({ key: overrideKey, data: lines }).catch(() => {});
+      }
+      window.dispatchEvent(new CustomEvent('ichigo-lyrics-updated', {
+        detail: { songId: song.id, lines }
+      }));
+      setLineDirty(false);
+      toast.success(`已保存 ${lines.length} 行歌词时间轴`);
+    } catch (err) {
+      toast.error('保存失败：' + (err.message || '未知错误'));
+    }
+  };
+
+  const handleResetLineEdits = () => {
+    setLineDrafts((Array.isArray(lyrics) ? lyrics : []).map((line) => ({ ...line })));
+    setLineDirty(false);
+  };
+
+  const formatLineTime = (sec) => {
+    const total = Math.max(0, Number(sec) || 0);
+    const m = Math.floor(total / 60);
+    const s = Math.floor(total % 60);
+    const cs = Math.round((total % 1) * 100);
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
+  };
+
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      zIndex: 9999,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'rgba(0,0,0,0.65)',
-      backdropFilter: 'blur(12px)',
-      animation: 'fadeIn 0.2s ease-out'
-    }} onClick={onClose}>
-      <div style={{
-        width: '520px',
-        maxWidth: '92vw',
-        maxHeight: '85vh',
-        background: 'rgba(24, 28, 38, 0.95)',
-        border: '1px solid rgba(255, 255, 255, 0.16)',
-        borderRadius: '16px',
-        boxShadow: '0 24px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08)',
-        color: '#fff',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column'
-      }} onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '16px 20px',
-          borderBottom: '1px solid rgba(255,255,255,0.1)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, fontSize: '15px' }}>
+    <Modal open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <ModalContent className="lyric-adjuster-dialog" showClose={false} aria-describedby={undefined}>
+        <ModalHeader>
+          <div className="lyric-adjuster-heading">
             <Clock size={18} color="var(--primary)" />
-            <span>歌词微调与手动替换</span>
+            <ModalTitle>歌词微调与手动替换</ModalTitle>
           </div>
-          <button type="button" onClick={onClose} style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'rgba(255,255,255,0.6)',
-            cursor: 'pointer',
-            padding: '4px'
-          }}>
-            <X size={18} />
-          </button>
-        </div>
+          <ModalClose asChild>
+            <IconButton label="关闭" variant="ghost" size="sm"><X size={16} /></IconButton>
+          </ModalClose>
+        </ModalHeader>
 
-        {/* Tab switcher */}
-        <div style={{
-          display: 'flex',
-          padding: '10px 20px',
-          gap: '8px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)'
-        }}>
-          <button type="button" onClick={() => setActiveTab('offset')} style={{
-            flex: 1,
-            padding: '8px',
-            borderRadius: '8px',
-            border: '1px solid',
-            borderColor: activeTab === 'offset' ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
-            background: activeTab === 'offset' ? 'rgba(255, 64, 129, 0.15)' : 'transparent',
-            color: activeTab === 'offset' ? '#fff' : 'rgba(255,255,255,0.7)',
-            cursor: 'pointer',
-            fontSize: '13px',
-            fontWeight: 500
-          }}>
-            时间轴微调
-          </button>
-          <button type="button" onClick={() => setActiveTab('search')} style={{
-            flex: 1,
-            padding: '8px',
-            borderRadius: '8px',
-            border: '1px solid',
-            borderColor: activeTab === 'search' ? 'var(--primary)' : 'rgba(255,255,255,0.12)',
-            background: activeTab === 'search' ? 'rgba(255, 64, 129, 0.15)' : 'transparent',
-            color: activeTab === 'search' ? '#fff' : 'rgba(255,255,255,0.7)',
-            cursor: 'pointer',
-            fontSize: '13px',
-            fontWeight: 500
-          }}>
-            多源手动搜索替换
-          </button>
-        </div>
+        <SegmentedControl value={activeTab} onValueChange={(value) => { if (value) setActiveTab(value); }} type="single">
+          <SegmentedControlItem value="offset" style={{ flex: 1 }}>全局偏移</SegmentedControlItem>
+          <SegmentedControlItem value="lines" style={{ flex: 1 }}>逐行微调</SegmentedControlItem>
+          <SegmentedControlItem value="search" style={{ flex: 1 }}>搜索替换</SegmentedControlItem>
+        </SegmentedControl>
 
-        {/* Content */}
-        <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
+        <ModalBody className="lyric-adjuster-body">
           {activeTab === 'offset' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{
-                textAlign: 'center',
-                padding: '18px',
-                background: 'rgba(255,255,255,0.04)',
-                borderRadius: '12px',
-                border: '1px solid rgba(255,255,255,0.08)'
-              }}>
-                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginBottom: '6px' }}>
-                  当前全局时间轴偏移
-                </div>
-                <div style={{
-                  fontSize: '28px',
-                  fontWeight: 700,
-                  color: currentOffset === 0 ? '#fff' : (currentOffset > 0 ? '#4caf50' : '#ff9800'),
-                  fontVariantNumeric: 'tabular-nums'
-                }}>
+            <div className="lyric-adjuster-section">
+              <div className="lyric-offset-card">
+                <div className="lyric-offset-label">当前全局时间轴偏移</div>
+                <div className={`lyric-offset-value ${currentOffset === 0 ? '' : currentOffset > 0 ? 'is-late' : 'is-early'}`}>
                   {currentOffset > 0 ? `+${currentOffset.toFixed(2)}s` : `${currentOffset.toFixed(2)}s`}
                 </div>
-                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>
-                  （正数代表歌词延后显示，负数代表歌词提前显示）
-                </div>
+                <div className="lyric-offset-hint">正数代表歌词延后显示，负数代表歌词提前显示</div>
               </div>
 
-              {/* Offset buttons */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-                <button type="button" onClick={() => handleAdjustOffset(-0.5)} style={btnStyle}>-0.5s</button>
-                <button type="button" onClick={() => handleAdjustOffset(-0.2)} style={btnStyle}>-0.2s</button>
-                <button type="button" onClick={() => handleAdjustOffset(-0.1)} style={btnStyle}>-0.1s</button>
-                <button type="button" onClick={() => handleAdjustOffset(-0.05)} style={btnStyle}>-0.05s</button>
-                <button type="button" onClick={() => handleAdjustOffset(0.05)} style={btnStyle}>+0.05s</button>
-                <button type="button" onClick={() => handleAdjustOffset(0.1)} style={btnStyle}>+0.1s</button>
-                <button type="button" onClick={() => handleAdjustOffset(0.2)} style={btnStyle}>+0.2s</button>
-                <button type="button" onClick={() => handleAdjustOffset(0.5)} style={btnStyle}>+0.5s</button>
+              <div className="lyric-offset-grid">
+                {[-0.5, -0.2, -0.1, -0.05, 0.05, 0.1, 0.2, 0.5].map((delta) => (
+                  <Button key={delta} variant="outline" size="sm" onClick={() => handleAdjustOffset(delta)}>
+                    {delta > 0 ? `+${delta}s` : `${delta}s`}
+                  </Button>
+                ))}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px' }}>
-                <button type="button" onClick={handleResetOffset} style={{
-                  ...btnStyle,
-                  padding: '8px 24px',
-                  background: 'rgba(255,255,255,0.08)',
-                  color: 'rgba(255,255,255,0.8)'
-                }}>
-                  <RefreshCw size={13} style={{ marginRight: '6px' }} /> 重置为 0.0s
-                </button>
+              <div className="lyric-adjuster-center">
+                <Button variant="subtle" size="sm" onClick={handleResetOffset}>
+                  <RefreshCw size={13} /> 重置为 0.0s
+                </Button>
               </div>
             </div>
           )}
 
-          {activeTab === 'search' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  type="text"
-                  placeholder="歌曲名称"
-                  value={searchTitle}
-                  onChange={e => setSearchTitle(e.target.value)}
-                  style={inputStyle}
-                />
-                <input
-                  type="text"
-                  placeholder="歌手名称（选填）"
-                  value={searchArtist}
-                  onChange={e => setSearchArtist(e.target.value)}
-                  style={inputStyle}
-                />
-                <button
-                  type="button"
-                  onClick={handleSearchLyrics}
-                  disabled={searching || !searchTitle.trim()}
-                  style={{
-                    ...btnStyle,
-                    background: 'var(--primary)',
-                    color: '#fff',
-                    padding: '0 16px',
-                    opacity: searching ? 0.6 : 1
-                  }}
-                >
-                  {searching ? <RefreshCw size={14} className="spin" /> : <Search size={14} />}
-                </button>
+          {activeTab === 'lines' && (
+            <div className="lyric-adjuster-section">
+              <div className="lyric-line-toolbar">
+                <span className="lyric-adjuster-label">共 {lineDrafts.length} 行 · 点击时间可跳转试听</span>
+                <div className="lyric-line-toolbar-actions">
+                  <Button variant="ghost" size="sm" onClick={handleResetLineEdits} disabled={!lineDirty}>撤销</Button>
+                  <Button variant="primary" size="sm" onClick={handleSaveLineEdits} disabled={!lineDirty || lineDrafts.length === 0}>
+                    <Save size={14} /> 保存
+                  </Button>
+                </div>
               </div>
-
-              {error && (
-                <div style={{
-                  padding: '10px 14px',
-                  background: 'rgba(244, 67, 54, 0.15)',
-                  border: '1px solid rgba(244, 67, 54, 0.3)',
-                  borderRadius: '8px',
-                  color: '#ff8a80',
-                  fontSize: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}>
-                  <AlertCircle size={15} />
-                  <span>{error}</span>
-                </div>
-              )}
-
-              {appliedMsg && (
-                <div style={{
-                  padding: '10px 14px',
-                  background: 'rgba(76, 175, 80, 0.15)',
-                  border: '1px solid rgba(76, 175, 80, 0.3)',
-                  borderRadius: '8px',
-                  color: '#81c784',
-                  fontSize: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}>
-                  <Check size={15} />
-                  <span>{appliedMsg}</span>
-                </div>
-              )}
-
-              {results.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>搜索匹配结果：</div>
-                  {results.map((cand, idx) => (
-                    <div key={idx} style={{
-                      padding: '12px',
-                      background: 'rgba(255,255,255,0.05)',
-                      border: '1px solid rgba(255,255,255,0.12)',
-                      borderRadius: '10px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '12px'
-                    }}>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                          <span style={{
-                            fontSize: '10px',
-                            padding: '2px 6px',
-                            background: 'var(--primary)',
-                            color: '#fff',
-                            borderRadius: '4px',
-                            fontWeight: 600,
-                            textTransform: 'uppercase'
-                          }}>
-                            {cand.source}
-                          </span>
-                          {cand.quality?.wordTimed && (
-                            <span style={{
-                              fontSize: '10px',
-                              padding: '2px 6px',
-                              background: '#4caf50',
-                              color: '#fff',
-                              borderRadius: '4px',
-                              fontWeight: 600
-                            }}>
-                              逐字时间轴
-                            </span>
-                          )}
-                          <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
-                            共 {cand.lines.length} 行
-                          </span>
-                        </div>
-                        <div style={{
-                          fontSize: '12px',
-                          color: 'rgba(255,255,255,0.85)',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {cand.lines[0]?.text || '歌词首句预览'} ... {cand.lines[1]?.text || ''}
-                        </div>
-                      </div>
-
+              {lineDrafts.length === 0 ? (
+                <div className="lyric-adjuster-alert">当前歌曲还没有可编辑的歌词</div>
+              ) : (
+                <div className="lyric-line-list">
+                  {lineDrafts.map((line, index) => (
+                    <div key={index} className="lyric-line-row">
+                      <span className="lyric-line-index">{String(index + 1).padStart(2, '0')}</span>
                       <button
                         type="button"
-                        onClick={() => handleApplyLyrics(cand)}
-                        style={{
-                          padding: '6px 14px',
-                          borderRadius: '6px',
-                          background: 'var(--primary)',
-                          color: '#fff',
-                          border: 'none',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                          fontWeight: 500,
-                          flexShrink: 0
-                        }}
+                        className="lyric-line-time"
+                        title="跳转到这一行"
+                        onClick={() => { if (audioElement) audioElement.currentTime = Math.max(0, Number(line.time) || 0); }}
                       >
-                        替换并应用
+                        {formatLineTime(line.time)}
                       </button>
+                      <span className="lyric-line-text">{line.text || '…'}</span>
+                      <span className="lyric-line-actions">
+                        {[-0.5, -0.1, 0.1, 0.5].map((delta) => (
+                          <button
+                            key={delta}
+                            type="button"
+                            className="lyric-line-nudge"
+                            aria-label={`第 ${index + 1} 行${delta > 0 ? '延后' : '提前'} ${Math.abs(delta)} 秒`}
+                            onClick={() => nudgeLine(index, delta)}
+                          >
+                            {delta > 0 ? `+${delta}` : delta}
+                          </button>
+                        ))}
+                      </span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
           )}
-        </div>
-      </div>
-    </div>
+
+          {activeTab === 'search' && (
+            <div className="lyric-adjuster-section">
+              <div className="lyric-search-row">
+                <Input
+                  placeholder="歌曲名称"
+                  value={searchTitle}
+                  onChange={(event) => setSearchTitle(event.target.value)}
+                  aria-label="歌曲名称"
+                />
+                <Input
+                  placeholder="歌手名称（选填）"
+                  value={searchArtist}
+                  onChange={(event) => setSearchArtist(event.target.value)}
+                  aria-label="歌手名称"
+                />
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleSearchLyrics}
+                  disabled={searching || !searchTitle.trim()}
+                >
+                  {searching ? <RefreshCw size={14} className="spin" /> : <Search size={14} />}
+                  搜索
+                </Button>
+              </div>
+
+              {error && (
+                <div className="lyric-adjuster-alert is-error" role="alert">
+                  <AlertCircle size={15} />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {appliedMsg && (
+                <div className="lyric-adjuster-alert is-success" role="status">
+                  <Check size={15} />
+                  <span>{appliedMsg}</span>
+                </div>
+              )}
+
+              {results.length > 0 && (
+                <div className="lyric-result-list">
+                  <div className="lyric-adjuster-label">搜索匹配结果</div>
+                  {results.map((cand, idx) => (
+                    <div key={idx} className="lyric-result-card">
+                      <div className="lyric-result-info">
+                        <div className="lyric-result-tags">
+                          <span className="lyric-source-badge">{cand.source}</span>
+                          {cand.quality?.wordTimed && <span className="lyric-source-badge is-word">逐字时间轴</span>}
+                          <span className="lyric-result-count">共 {cand.lines.length} 行</span>
+                        </div>
+                        <div className="lyric-result-preview">
+                          {cand.lines[0]?.text || '歌词首句预览'} … {cand.lines[1]?.text || ''}
+                        </div>
+                      </div>
+                      <Button variant="primary" size="sm" onClick={() => handleApplyLyrics(cand)}>
+                        替换并应用
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </ModalBody>
+      </ModalContent>
+    </Modal>
   );
 }
-
-const btnStyle = {
-  padding: '8px 12px',
-  borderRadius: '8px',
-  border: '1px solid rgba(255,255,255,0.12)',
-  background: 'rgba(255,255,255,0.06)',
-  color: '#fff',
-  fontSize: '12px',
-  cursor: 'pointer',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  transition: 'all 0.15s ease'
-};
-
-const inputStyle = {
-  flex: 1,
-  padding: '8px 12px',
-  borderRadius: '8px',
-  border: '1px solid rgba(255,255,255,0.14)',
-  background: 'rgba(255,255,255,0.07)',
-  color: '#fff',
-  fontSize: '13px',
-  outline: 'none'
-};

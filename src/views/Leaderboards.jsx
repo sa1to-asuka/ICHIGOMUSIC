@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { useApp } from '../context/AppContext';
 import { api, getCachedData } from '../utils/api';
 import { Play } from 'lucide-react';
@@ -51,11 +52,11 @@ export default function Leaderboards() {
       if (songs.length > 0) {
         playSong(songs[0], songs);
       } else {
-        alert('该榜单暂无歌曲！');
+        toast.info('该榜单暂无歌曲');
       }
     } catch (err) {
       console.error(err);
-      alert('加载榜单歌曲失败');
+      toast.error('加载榜单歌曲失败');
     }
   };
 
@@ -70,7 +71,7 @@ export default function Leaderboards() {
   return (
     <div className="view-container">
       {/* Official leaderboards */}
-      <h2 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700, marginBottom: '20px' }}>官方榜单</h2>
+      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--type-h2-size, 24px)', fontWeight: 'var(--weight-semibold, 600)', lineHeight: 'var(--type-h2-line, 1.25)', marginBottom: '20px' }}>官方榜单</h2>
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '40px' }}>
         {officialLists.map(list => (
@@ -111,11 +112,11 @@ export default function Leaderboards() {
 
             {/* Tracks Previews */}
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-active)' }}>{list.name}</h3>
+              <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-active)' }}>{list.name}</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {list.tracks.map((track, idx) => (
                   <div key={idx} style={{ fontSize: '13px', display: 'flex', gap: '10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    <span style={{ fontWeight: 700, color: idx === 0 ? 'var(--primary)' : 'var(--text-muted)', width: '16px' }}>
+                    <span style={{ fontWeight: 600, color: idx === 0 ? 'var(--primary)' : 'var(--text-muted)', width: '16px' }}>
                       {idx + 1}
                     </span>
                     <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>{track.first}</span>
@@ -133,7 +134,7 @@ export default function Leaderboards() {
       </div>
 
       {/* Global leaderboards */}
-      <h2 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700, marginBottom: '20px' }}>全球媒体榜单</h2>
+      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--type-h2-size, 24px)', fontWeight: 'var(--weight-semibold, 600)', lineHeight: 'var(--type-h2-line, 1.25)', marginBottom: '20px' }}>全球媒体榜单</h2>
       
       <div className="grid-6">
         {globalLists.map(list => (

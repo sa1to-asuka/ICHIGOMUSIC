@@ -2,7 +2,7 @@
   min-height: 100%;
   padding: 16px clamp(20px, 3.5vw, 48px) 100px;
   color: var(--text-main);
-  background: radial-gradient(circle at 85% 0%, rgba(16, 185, 129, 0.12), transparent 34%), linear-gradient(135deg, rgba(255,255,255,0.025), transparent 55%);
+  background: var(--color-canvas);
   box-sizing: border-box;
 }
 
@@ -338,15 +338,15 @@
 }
 
 .mode-light .listen-header-banner {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(240, 253, 250, 0.92) 100%) !important;
-  border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+  background: var(--color-raised) !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: var(--shadow-1);
 }
 
 .mode-light .listen-setup-panel {
-  background: rgba(255, 255, 255, 0.9) !important;
-  border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04) !important;
+  background: var(--color-raised) !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: var(--shadow-1) !important;
 }
 
 .mode-light .listen-now-playing,
