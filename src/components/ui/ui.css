@@ -1089,3 +1089,13 @@ body.surface-flat .glass-hero { background: var(--surface-bg) !important; }
   border-radius: 6px;
   font-size: 11px;
 }
+
+/* Keep long selected labels on one line; the dropdown still shows full text. */
+.ui-select-trigger { white-space: nowrap; }
+.ui-select-trigger > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ui-select-content { max-width: min(360px, 90vw); }

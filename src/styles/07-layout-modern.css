@@ -216,7 +216,7 @@
   font-family: var(--font-display);
   font-weight: var(--weight-semibold, 600);
   font-size: 16px;
-  line-height: 1.2;
+  line-height: 1.35;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

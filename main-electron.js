@@ -74,10 +74,14 @@ const __dirname = path.dirname(__filename);
 // Register Furigana IPC Handlers
 const KANJI_REGEX = /[\u4e00-\u9faf\u3400-\u4dbf]/;
 const JAPANESE_KANA_REGEX = /[\u3040-\u309f\u30a0-\u30ff\u31f0-\u31ff\uff66-\uff9f]/;
+// Morphological analysis is expensive; keep resolved lines so repeated
+// batches (reopening lyrics views / export panels) are near-free.
+const furiganaBatchCache = new Map();
+const FURIGANA_BATCH_CACHE_LIMIT = 4000;
 ipcMain.handle('furigana:convert-batch', async (event, lines) => {
   const ks = await getKuroshiro();
   if (!ks || !Array.isArray(lines)) return {};
-  
+
   // Guard: If there is no Japanese Kana across the entire batch, it's Chinese/non-Japanese
   const hasAnyKana = lines.some(item => {
     const t = typeof item === 'string' ? item : item?.text;
@@ -90,9 +94,16 @@ ipcMain.handle('furigana:convert-batch', async (event, lines) => {
     const text = typeof item === 'string' ? item : item?.text;
     if (!text || typeof text !== 'string') continue;
     if (!KANJI_REGEX.test(text)) continue;
+    if (furiganaBatchCache.has(text)) {
+      results[text] = furiganaBatchCache.get(text);
+      continue;
+    }
     try {
       const raw = await ks.convert(text, { mode: 'furigana', to: 'hiragana' });
-      results[text] = raw.replace(/<rp>\(<\/rp>|<rp>\)<\/rp>/g, '');
+      const html = raw.replace(/<rp>\(<\/rp>|<rp>\)<\/rp>/g, '');
+      if (furiganaBatchCache.size >= FURIGANA_BATCH_CACHE_LIMIT) furiganaBatchCache.clear();
+      furiganaBatchCache.set(text, html);
+      results[text] = html;
     } catch (err) {
       results[text] = text;
     }

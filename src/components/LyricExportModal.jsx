@@ -71,7 +71,9 @@ const BASE_FORMAT_OPTIONS = [
   }
 ];
 
-export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics = [] }) {
+const EMPTY_LYRICS = [];
+
+export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics = EMPTY_LYRICS }) {
   const { advancedLyricConfig, currentSong: activeSong } = useApp();
   const song = currentSong || activeSong;
 
@@ -88,41 +90,46 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
   const [copySuccess, setCopySuccess] = useState(false);
   const [exportStatus, setExportStatus] = useState(null); // { type: 'success' | 'error', message: string }
   const [isExporting, setIsExporting] = useState(false);
-  const [internalLyrics, setInternalLyrics] = useState(lyrics || []);
+  const [fetchedLyrics, setFetchedLyrics] = useState(EMPTY_LYRICS);
   const [isLoadingLyrics, setIsLoadingLyrics] = useState(false);
   const [furiganaWarmed, setFuriganaWarmed] = useState(0);
+
+  // Parent-supplied lyrics win, otherwise fetch once per song. Both branches
+  // must stay referentially stable: keying this effect on the raw `lyrics`
+  // prop made every render (a fresh `[]`) refetch lyrics and re-run the
+  // Japanese furigana batch, saturating the main process.
+  const hasExternalLyrics = Array.isArray(lyrics) && lyrics.length > 0;
+  const songId = song?.id;
+
   useEffect(() => {
-    if (Array.isArray(lyrics) && lyrics.length > 0) {
-      setInternalLyrics(lyrics);
-      return;
-    }
-    if (!isOpen || !song?.id) {
-      setInternalLyrics([]);
-      return;
+    if (!isOpen || hasExternalLyrics || !songId) {
+      setIsLoadingLyrics(false);
+      return undefined;
     }
 
-    let isMounted = true;
+    let cancelled = false;
     setIsLoadingLyrics(true);
+    setFetchedLyrics(EMPTY_LYRICS);
 
     const loadLyricsAsync = async () => {
-      const cacheKey = `ichigo_lyrics_parsed_${song.id}`;
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        try {
+      const cacheKey = `ichigo_lyrics_parsed_${songId}`;
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            if (isMounted) {
-              setInternalLyrics(parsed);
+            if (!cancelled) {
+              setFetchedLyrics(parsed);
               setIsLoadingLyrics(false);
             }
             return;
           }
-        } catch (e) {}
-      }
+        }
+      } catch (e) {}
 
       try {
-        const res = await api.getLyrics(song.id);
-        if (!isMounted) return;
+        const res = await api.getLyrics(songId);
+        if (cancelled) return;
         const yrcLines = res.yrc && res.yrc.lyric ? parseYrc(res.yrc.lyric) : [];
         const lrcLines = res.lrc && res.lrc.lyric ? parseLrc(res.lrc.lyric) : [];
         let combined = yrcLines.length > 0 ? yrcLines : lrcLines;
@@ -133,23 +140,22 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
           combined = mergeRomaji(combined, res.romalrc.lyric);
         }
         combined = computeLineDurations(combined);
-        if (isMounted) {
-          setInternalLyrics(combined);
-        }
+        if (!cancelled) setFetchedLyrics(combined);
       } catch (err) {
         console.warn('Failed to fetch fallback lyrics for export modal:', err);
       } finally {
-        if (isMounted) setIsLoadingLyrics(false);
+        if (!cancelled) setIsLoadingLyrics(false);
       }
     };
 
     loadLyricsAsync();
 
     return () => {
-      isMounted = false;
+      cancelled = true;
     };
-  }, [isOpen, song?.id, lyrics]);
-  const effectiveLyrics = internalLyrics.length > 0 ? internalLyrics : (lyrics || []);
+  }, [isOpen, hasExternalLyrics, songId]);
+
+  const effectiveLyrics = hasExternalLyrics ? lyrics : fetchedLyrics;
   const currentOffset = advancedLyricConfig?.globalOffset || 0;
   const meta = useMemo(() => extractSongMeta(song), [song]);
 

@@ -61,6 +61,14 @@ const selectHits = sourceFiles.filter((file) => {
 });
 assert(selectHits.length === 0, `unmigrated native <select> in: ${selectHits.map((f) => path.relative(root, f)).join(', ')}`);
 
+// The export modal fetches lyrics in an effect. Keying that effect on the
+// `lyrics` prop (default `[]`) refetched on every render and saturated the
+// main process with furigana batches, so the default must be a module-level
+// constant and the deps must stay primitive.
+const exportModal = read('src/components/LyricExportModal.jsx');
+assert(exportModal.includes('lyrics = EMPTY_LYRICS'), 'LyricExportModal must default lyrics to the stable EMPTY_LYRICS');
+assert(exportModal.includes('[isOpen, hasExternalLyrics, songId]'), 'LyricExportModal lyric fetch must key on primitive deps');
+
 if (process.exitCode) {
   console.error('[ui-migration] FAILED');
 } else {

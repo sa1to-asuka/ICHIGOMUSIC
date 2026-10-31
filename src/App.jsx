@@ -812,12 +812,12 @@ function AppContent() {
                           value={advancedLyricConfig.lyricSources || 'amll,qq,kugou'}
                           onChange={(value) => updateAdvancedLyricConfig({ lyricSources: value })}
                           options={[
-                            { value: 'amll,qq,kugou', label: '自动：时长匹配 + 逐字优先' },
-                            { value: 'netease', label: '网易云原始歌词' },
-                            { value: 'amll', label: 'AMLL TTML 逐字' },
-                            { value: 'qq', label: 'QQ 音乐逐字' },
-                            { value: 'kugou', label: '酷狗逐字' },
-                            { value: 'qq,kugou', label: 'QQ / 酷狗逐字' }
+                            { value: 'amll,qq,kugou', label: '自动（逐字优先）' },
+                            { value: 'netease', label: '网易云原始' },
+                            { value: 'amll', label: 'AMLL TTML' },
+                            { value: 'qq', label: 'QQ 音乐' },
+                            { value: 'kugou', label: '酷狗' },
+                            { value: 'qq,kugou', label: 'QQ / 酷狗' }
                           ]}
                           ariaLabel="歌词来源"
                         />
@@ -831,7 +831,7 @@ function AppContent() {
                           block
                           onClick={() => setIsLyricExportOpen(true)}
                         >
-                          <Download size={14} /> 导出歌词（LRC / 双语 / 逐字 / TXT）
+                          <Download size={14} /> 导出歌词
                         </Button>
                         <div className="isp-actions-row">
                           <Button
@@ -840,7 +840,7 @@ function AppContent() {
                             size="md"
                             onClick={() => setIsLyricAdjusterOpen(true)}
                           >
-                            <SlidersHorizontal size={14} /> 歌词微调 / 换源
+                            <SlidersHorizontal size={14} /> 歌词微调
                           </Button>
                           <Button
                             type="button"
@@ -853,25 +853,26 @@ function AppContent() {
                         </div>
                       </div>
 
-                      <div className="setting-row-inline">
-                        <span>歌词时间偏移：{Number(advancedLyricConfig.globalOffset || 0).toFixed(2)} 秒</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <Button 
-                            variant="outline" 
+                      <div className="isp-offset-row">
+                        <div className="isp-offset-head">
+                          <span>歌词时间偏移</span>
+                          <span className="isp-offset-value">{Number(advancedLyricConfig.globalOffset || 0).toFixed(2)}s</span>
+                        </div>
+                        <div className="isp-offset-controls">
+                          <Button
+                            variant="outline"
                             size="xs"
                             onClick={() => updateAdvancedLyricConfig({ globalOffset: (Number(advancedLyricConfig.globalOffset) || 0) - 0.5 })}
                           >-0.5s</Button>
-                          <div style={{ width: '110px' }}>
-                            <Slider
-                              min={-3}
-                              max={3}
-                              step={0.05}
-                              value={[Number(advancedLyricConfig.globalOffset || 0)]}
-                              onValueChange={([val]) => updateAdvancedLyricConfig({ globalOffset: Number(val) })}
-                            />
-                          </div>
-                          <Button 
-                            variant="outline" 
+                          <Slider
+                            min={-3}
+                            max={3}
+                            step={0.05}
+                            value={[Number(advancedLyricConfig.globalOffset || 0)]}
+                            onValueChange={([val]) => updateAdvancedLyricConfig({ globalOffset: Number(val) })}
+                          />
+                          <Button
+                            variant="outline"
                             size="xs"
                             onClick={() => updateAdvancedLyricConfig({ globalOffset: (Number(advancedLyricConfig.globalOffset) || 0) + 0.5 })}
                           >+0.5s</Button>
@@ -897,11 +898,11 @@ function AppContent() {
                           <div style={{
                             background: 'var(--surface-sunken)',
                             border: '1px solid var(--card-border)',
-                            borderRadius: 'var(--radius-lg, 12px)',
-                            padding: '14px',
+                            borderRadius: '10px',
+                            padding: '10px',
                             display: 'flex',
                             flexDirection: 'column',
-                            gap: '10px'
+                            gap: '8px'
                           }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -924,7 +925,7 @@ function AppContent() {
                               }}
                             >
                               <Dices size={16} />
-                              <span>おまかせ 一键重混分镜（快捷键 R）</span>
+                              <span>おまかせ 重混分镜</span><span className="isp-kbd">R</span>
                             </Button>
 
                             {/* 方案历史步进 */}
@@ -965,11 +966,11 @@ function AppContent() {
                               onChange={applyKtvPreset}
                               ariaLabel="PV 模板速选"
                               options={[
-                                { value: 'auto', label: '自动：智能匹配封面色彩' },
-                                { value: 'multi', label: '多选：随机轮播风格池' },
+                                { value: 'auto', label: '自动匹配封面' },
+                                { value: 'multi', label: '随机轮播' },
                                 ...(Array.isArray(JIZURA_GALLERY_STYLES) ? JIZURA_GALLERY_STYLES : []).map((s) => ({
                                   value: s.key,
-                                  label: `${s.name} (${s.en}) · ${s.tag}`
+                                  label: `${s.name} · ${s.tag}`
                                 }))
                               ]}
                             />
@@ -1232,8 +1233,8 @@ function AppContent() {
                               value={advancedLyricConfig.titleFontFamily || 'Newsreader'}
                               onChange={(value) => updateAdvancedLyricConfig({ titleFontFamily: value })}
                               options={[
-                                { value: 'Newsreader', label: 'Newsreader (编辑衬线)' },
-                                { value: 'Instrument Sans', label: 'Instrument Sans (现代无衬线)' },
+                                { value: 'Newsreader', label: 'Newsreader' },
+                                { value: 'Instrument Sans', label: 'Instrument Sans' },
                                 { value: 'Noto Serif SC', label: '思源宋体' },
                                 { value: 'Microsoft YaHei', label: '微软雅黑' },
                                 { value: 'KaiTi', label: '楷体' }
@@ -1247,8 +1248,8 @@ function AppContent() {
                               value={advancedLyricConfig.fontFamily || 'Instrument Sans'}
                               onChange={(value) => updateAdvancedLyricConfig({ fontFamily: value })}
                               options={[
-                                { value: 'Instrument Sans', label: 'Instrument Sans (现代无衬线)' },
-                                { value: 'Newsreader', label: 'Newsreader (编辑衬线)' },
+                                { value: 'Instrument Sans', label: 'Instrument Sans' },
+                                { value: 'Newsreader', label: 'Newsreader' },
                                 { value: 'Noto Serif SC', label: '思源宋体' },
                                 { value: 'Microsoft YaHei', label: '微软雅黑' },
                                 { value: 'KaiTi', label: '楷体' }

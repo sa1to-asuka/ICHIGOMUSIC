@@ -717,8 +717,8 @@ export default function Settings() {
               <Select value={desktopLyricsConfig.fontFamily || 'Instrument Sans'} onValueChange={(value) => updateDesktop({ fontFamily: value })}>
                 <SelectTrigger aria-label="字体选择"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Instrument Sans">Instrument Sans (现代无衬线)</SelectItem>
-                  <SelectItem value="Newsreader">Newsreader (编辑衬线)</SelectItem>
+                  <SelectItem value="Instrument Sans">Instrument Sans</SelectItem>
+                  <SelectItem value="Newsreader">Newsreader</SelectItem>
                   <SelectItem value="Microsoft YaHei">微软雅黑</SelectItem>
                   <SelectItem value="Noto Sans SC">思源黑体</SelectItem>
                   <SelectItem value="Noto Serif SC">思源宋体</SelectItem>

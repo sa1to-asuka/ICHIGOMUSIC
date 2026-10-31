@@ -253,10 +253,11 @@ function MonetPosterLayout({
           .monet-title-text {
             font-family: ${titleFontStack};
             font-size: clamp(2rem, 4vw, 3.5rem);
-            font-weight: 800;
+            font-weight: 600;
             color: var(--text-main);
-            letter-spacing: -0.03em;
-            line-height: 1.1;
+            letter-spacing: -0.02em;
+            line-height: 1.3;
+            padding-top: 0.04em;
             margin-top: 8px;
             display: -webkit-box;
             -webkit-line-clamp: 2;

@@ -1122,6 +1122,11 @@ export function annotateFurigana(text) {
 /**
  * Asynchronously converts Japanese text to clean <ruby> HTML markup using Kuroshiro
  */
+// Share one conversion per text: callers fire this from render paths, so a
+// burst of calls (e.g. an export preview regenerating) must not stack up
+// duplicate Kuroshiro analyses.
+const inflightConversions = new Map();
+
 export async function convertFuriganaAsync(text) {
   if (!text || typeof text !== 'string') return '';
   // Only skip if already resolved by Kuroshiro/IPC (not rule-based fallback)
@@ -1129,30 +1134,42 @@ export async function convertFuriganaAsync(text) {
     return furiganaHtmlCache.get(text);
   }
 
-  try {
-    const ready = await initFuriganaEngine();
-    if (ready && isInitialized) {
-      const raw = await kuroshiro.convert(text, { mode: 'furigana', to: 'hiragana' });
-      const cleanHtml = raw.replace(/<rp>\(<\/rp>|<rp>\)<\/rp>/g, '');
-      furiganaHtmlCache.set(text, cleanHtml);
-      kuroshiroResolvedSet.add(text);
-      
-      const charMap = buildCharRubyMapFromHtml(cleanHtml, text);
-      lineRubyMapCache.set(text, charMap);
+  const inflight = inflightConversions.get(text);
+  if (inflight) return inflight;
 
-      const segs = parseRubyHtmlToSegments(cleanHtml, text);
-      furiganaTokensCache.set(text, segs);
-      return cleanHtml;
+  const task = (async () => {
+    try {
+      const ready = await initFuriganaEngine();
+      if (ready && isInitialized) {
+        const raw = await kuroshiro.convert(text, { mode: 'furigana', to: 'hiragana' });
+        const cleanHtml = raw.replace(/<rp>\(<\/rp>|<rp>\)<\/rp>/g, '');
+        furiganaHtmlCache.set(text, cleanHtml);
+        kuroshiroResolvedSet.add(text);
+
+        const charMap = buildCharRubyMapFromHtml(cleanHtml, text);
+        lineRubyMapCache.set(text, charMap);
+
+        const segs = parseRubyHtmlToSegments(cleanHtml, text);
+        furiganaTokensCache.set(text, segs);
+        return cleanHtml;
+      }
+    } catch (err) {
+      console.warn('[Furigana] convert error:', err);
     }
-  } catch (err) {
-    console.warn('[Furigana] convert error:', err);
-  }
 
-  // Kuroshiro unavailable — cache rule-based as last resort
-  const tokens = annotateFuriganaRuleBased(text);
-  const fallbackHtml = tokens.map(s => s.ruby ? `<ruby>${s.text}<rt>${s.ruby}</rt></ruby>` : s.text).join('');
-  furiganaHtmlCache.set(text, fallbackHtml);
-  return fallbackHtml;
+    // Kuroshiro unavailable — cache rule-based as last resort
+    const tokens = annotateFuriganaRuleBased(text);
+    const fallbackHtml = tokens.map(s => s.ruby ? `<ruby>${s.text}<rt>${s.ruby}</rt></ruby>` : s.text).join('');
+    furiganaHtmlCache.set(text, fallbackHtml);
+    return fallbackHtml;
+  })();
+
+  inflightConversions.set(text, task);
+  try {
+    return await task;
+  } finally {
+    inflightConversions.delete(text);
+  }
 }
 /**
  * Pre-warms and pre-analyzes all lyric lines of a song in background
@@ -1162,6 +1179,16 @@ export async function warmupFuriganaLines(lines) {
 
   // Guard: If the song does not contain ANY Japanese Kana, it is Chinese/English: DO NOT annotate!
   if (!isJapaneseSong(lines)) {
+    return;
+  }
+
+  const lyricTexts = lines
+    .map(line => (typeof line === 'string' ? line : line?.text))
+    .filter(text => typeof text === 'string' && text.length > 0);
+
+  // Reopening the modal (or switching a preview option) must not re-analyze
+  // lyrics that are already resolved.
+  if (lyricTexts.length > 0 && lyricTexts.every(text => kuroshiroResolvedSet.has(text) && furiganaHtmlCache.has(text))) {
     return;
   }
 
