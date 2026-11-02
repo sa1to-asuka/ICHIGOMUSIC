@@ -202,8 +202,7 @@ export default function AudioMatchModal({ isOpen, onClose }) {
           width: '540px',
           maxWidth: '95vw',
           padding: '28px',
-          gap: '20px',
-          position: 'relative'
+          gap: '20px'
         }}
       >
         {/* Header */}

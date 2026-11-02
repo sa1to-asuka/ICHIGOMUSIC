@@ -6,7 +6,10 @@ const MODE_DESCRIPTIONS = {
   cloudstep: '歌词以阶梯式布局展开，适合观察上下句的关系。',
   spatial: '将歌词放入全屏空间画布，强调景深和空间移动。',
   vinyl: '以唱片旋转为视觉核心，适合复古或器乐类歌曲。',
-  filmstrip: '歌词以电影胶片帧呈现，当前句像镜头一样被聚焦。'
+  filmstrip: '歌词以电影胶片帧呈现，当前句像镜头一样被聚焦。',
+  nebbia: '雨夜车窗起雾，逐字写在雾气上，笔画过后露出窗外夜景。',
+  lumiere: '体积光与烟雾中，歌词随光束逐字点亮。',
+  machi: '日本小镇微缩街景，歌词写在招牌与 LED 大屏上。'
   // spotlight: '当前歌词像舞台聚光灯一样突出，上下句柔和退场。',
   // starfield: '星点和歌词形成缓慢星轨，适合夜晚或氛围音乐。',
   // inkflow: '背景墨迹随歌词呼吸扩散，适合中文和抒情歌曲。'
@@ -73,7 +76,10 @@ export const IMMERSIVE_MODE_OPTIONS = [
   { value: 'cloudstep', label: '云阶模式' },
   { value: 'spatial', label: '空间画布' },
   { value: 'vinyl', label: '黑胶光碟' },
-  { value: 'filmstrip', label: '胶片模式' }
+  { value: 'filmstrip', label: '胶片模式' },
+  { value: 'nebbia', label: '雾笺' },
+  { value: 'lumiere', label: '绘光' },
+  { value: 'machi', label: '町景' }
   // { value: 'spotlight', label: '聚光灯舞台' },
   // { value: 'starfield', label: '星轨模式' },
   // { value: 'inkflow', label: '水墨流动' }
@@ -88,6 +94,9 @@ export const IMMERSIVE_MODE_PARAMETER_KEYS = {
   spatial: ['spatialParticleCount', 'spatialParticleSize', 'spatialParticleOpacity', 'spatialSpreadX', 'spatialSpreadY', 'spatialSpreadZ', 'spatialConnectLines', 'spatialConnectOpacity', 'spatialColorMode', 'spatialCustomColor', 'spatialDepthBlur'],
   vinyl: ['vinylGrooveCount', 'vinylGrooveWidth', 'vinylGrooveMaxWidth', 'vinylGrooveOpacity', 'vinylGrooveColorMode', 'vinylStylusGlowStrength', 'vinylStylusGlowSize', 'vinylEdgeReflection', 'vinylEdgeReflectionIntensity', 'vinylSmoothing', 'vinylTiltAngle', 'vinylLineSpacing'],
   filmstrip: ['filmFrameGap', 'filmOpacity', 'filmActiveScale', 'filmShowTranslation'],
+  nebbia: ['nebbiaFog', 'nebbiaDroplets', 'nebbiaTitleCard', 'showTranslation'],
+  lumiere: ['lumiereBeams', 'lumiereSmoke', 'lumiereGlow', 'showTranslation'],
+  machi: ['machiScene', 'machiNight', 'machiRain', 'machiCamera', 'machiSignGlow', 'showTranslation'],
   // spotlight: ['spotlightLineGap', 'spotlightDimOpacity', 'spotlightScale', 'spotlightShowTranslation', 'spotlightShowGlow', 'spotlightEffect', 'spotlightMotion'],
   // starfield: ['starDensity', 'starSpeed', 'starDepth', 'starShowTranslation'],
   // inkflow: ['inkSpread', 'inkOpacity', 'inkSpeed', 'inkShowTranslation'],
@@ -106,7 +115,10 @@ export const DEFAULT_VISUALIZER_BY_MODE = {
   cloudstep: 'wave',
   spatial: 'mode',
   vinyl: 'circle',
-  filmstrip: 'filmstrip'
+  filmstrip: 'filmstrip',
+  nebbia: 'off',
+  lumiere: 'off',
+  machi: 'off'
   // spotlight: 'spotlight',
   // starfield: 'starfield',
   // inkflow: 'inkflow'

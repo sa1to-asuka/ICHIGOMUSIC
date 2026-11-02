@@ -82,40 +82,68 @@ function MonetPosterLayout({
     railHeight: 500
   });
 
+  const layoutRef = useRef(null);
   const railContainerRef = useRef(null);
   const coverPaneRef = useRef(null);
   const coverImgRef = useRef(null);
 
+  // Font size must follow the pane continuously: measuring only the rail once
+  // per resize event let the value stick at whatever the last event happened to
+  // read, so maximizing and restoring left the lyrics at a different size.
   useEffect(() => {
-    const updateDimensions = () => {
-      if (!railContainerRef.current) return;
-      const { clientWidth, clientHeight } = railContainerRef.current;
-      const effectiveLyricWidth = showCover ? clientWidth : Math.min(clientWidth * 0.52, 600);
-      const baseFont = Math.min(Math.max(effectiveLyricWidth * 0.052, 20), 30) * fontScale;
-      setDimensions({
-        fontPx: baseFont,
-        transPx: baseFont * 0.48,
-        maxWidthPx: showCover ? clientWidth * 0.95 : Math.min(clientWidth * 0.92, 800),
-        railHeight: clientHeight
+    let frame = 0;
+
+    const measure = () => {
+      frame = 0;
+      const rail = railContainerRef.current;
+      const layout = layoutRef.current;
+      const paneWidth = rail?.clientWidth || layout?.clientWidth || 0;
+      const paneHeight = rail?.clientHeight || layout?.clientHeight || 0;
+      if (paneWidth <= 0 || paneHeight <= 0) return;
+
+      const effectiveLyricWidth = showCover ? paneWidth : Math.min(paneWidth * 0.52, 600);
+      const baseFont = Math.min(
+        Math.max(Math.min(effectiveLyricWidth * 0.052, paneHeight * 0.09), 18),
+        56
+      ) * fontScale;
+
+      setDimensions((prev) => {
+        const next = {
+          fontPx: baseFont,
+          transPx: baseFont * 0.48,
+          maxWidthPx: showCover ? paneWidth * 0.95 : Math.min(paneWidth * 0.92, 800),
+          railHeight: paneHeight
+        };
+        const unchanged =
+          Math.abs(prev.fontPx - next.fontPx) < 0.15 &&
+          Math.abs(prev.transPx - next.transPx) < 0.15 &&
+          Math.abs(prev.maxWidthPx - next.maxWidthPx) < 0.5 &&
+          Math.abs(prev.railHeight - next.railHeight) < 0.5;
+        return unchanged ? prev : next;
       });
     };
 
-    updateDimensions();
-    window.addEventListener('resize', updateDimensions);
+    const schedule = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(measure);
+    };
+
+    schedule();
+    window.addEventListener('resize', schedule);
 
     let ro = null;
-    if (typeof ResizeObserver !== 'undefined' && railContainerRef.current) {
-      ro = new ResizeObserver(() => {
-        updateDimensions();
-      });
-      ro.observe(railContainerRef.current);
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(schedule);
+      if (layoutRef.current) ro.observe(layoutRef.current);
+      if (railContainerRef.current) ro.observe(railContainerRef.current);
     }
 
     return () => {
-      window.removeEventListener('resize', updateDimensions);
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener('resize', schedule);
       if (ro) ro.disconnect();
     };
-  }, [fontScale]);
+  }, [fontScale, showCover]);
 
   const displayLyrics = useMemo(() => {
     return lyrics && lyrics.length > 0 ? lyrics : [{
@@ -163,7 +191,7 @@ function MonetPosterLayout({
   }, [coverUrl]);
 
   return (
-    <div className={`monet-poster-layout ${isKashiMode ? 'monet-poster-layout--kashi' : ''}`} style={{
+    <div ref={layoutRef} className={`monet-poster-layout ${isKashiMode ? 'monet-poster-layout--kashi' : ''}`} style={{
       position: 'absolute',
       inset: 0,
       display: 'flex',

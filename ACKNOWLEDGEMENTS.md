@@ -25,7 +25,7 @@ ICHIGOMusic 的实现离不开以下开源项目、歌词数据源与社区工�
 
 | 项目 | 在本项目中的用途 | 许可证 |
 | --- | --- | --- |
-| [chthollyphile/folia-major](https://github.com/chthollyphile/folia-major) | “莫奈”歌词布局与逐字动画的核心参考/移植来源：`src/components/lyrics/MonetLyricsEngine.js`、`MonetLyricsRail.jsx`、`MonetWordSweep.jsx`、`MonetPosterLayout.jsx`、`foliaRows.js`；以及 `server/util/qrcDecrypt.js`、`server/util/krcDecrypt.js`、`server/util/lyricMatch.js` 的 QRC/KRC 解密与多源逐字歌词匹配 | AGPL-3.0 |
+| [chthollyphile/folia-major](https://github.com/chthollyphile/folia-major) | “莫奈”歌词布局与逐字动画的核心参考/移植来源：`src/components/lyrics/MonetLyricsEngine.js`、`MonetLyricsRail.jsx`、`MonetWordSweep.jsx`、`MonetPosterLayout.jsx`、`foliaRows.js`；以及 `server/util/qrcDecrypt.js`、`server/util/krcDecrypt.js`、`server/util/lyricMatch.js` 的 QRC/KRC 解密与多源逐字歌词匹配。3.6.0 的「雾笺」「绘光」「町景」三种舞台参考其同名样式（Nebbia / Lumiere / Machi）独立实现：`NebbiaLyrics.jsx`、`LumiereLyrics.jsx`、`MachiLyrics.jsx`、`TokenRevealLine.jsx` | AGPL-3.0 |
 | [amll-dev/amll-ttml-db](https://github.com/amll-dev/amll-ttml-db) | AMLL TTML 逐词歌词库，`server/util/lyricMatch.js` 通过 `amll-ttml-db.stevexmh.net` 获取 TTML 歌词 | CC0-1.0 |
 | [amll-dev/applemusic-like-lyrics](https://github.com/amll-dev/applemusic-like-lyrics) | AMLL / Apple Music 风格 TTML 歌词格式与生态参考，对应 `src/utils/lyrics/lyricExporter.js` 的 TTML 导出与设置中的 AMLL 歌词源 | AGPL-3.0 |
 | [hexenq/kuroshiro](https://github.com/hexenq/kuroshiro) | 日语歌词假名注音（Furigana）转换 | MIT |

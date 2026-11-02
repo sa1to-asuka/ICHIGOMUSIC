@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { parseLrc, parseYrc, mergeTranslation, mergeRomaji, computeLineDurations } from '../utils/lyrics/lyricParser.js';
+import { fillMissingTranslations, hasAnyTranslation } from '../utils/lyrics/translationAlign.js';
 import { api } from '../utils/api.js';
 import { warmupFuriganaLines } from '../utils/lyrics/furiganaHelper.js';
 function getDurationSec(songMeta) {
@@ -267,7 +268,7 @@ export function useLyricEngine(songId, audioElement, songMeta = null, lyricSourc
         localStorage.removeItem(overrideKey);
       }
 
-      const cacheKey = `lyrics_cache_v12_${songId}_${lyricSources || 'auto'}_${durationMs || 0}`;
+      const cacheKey = `lyrics_cache_v13_${songId}_${lyricSources || 'auto'}_${durationMs || 0}`;
       if (lyricCacheEnabled && window.electronAPI?.readLyricCache) {
         const fileCached = await window.electronAPI.readLyricCache({
           key: cacheKey,
@@ -337,6 +338,7 @@ export function useLyricEngine(songId, audioElement, songMeta = null, lyricSourc
         let bestQuality = assessLyricQuality(neteaseLines, durationSec);
         const allowMatchedSources = lyricSources !== 'netease';
         const shouldTryMatched = allowMatchedSources && (bestQuality.lowQuality || !bestQuality.wordTimed);
+        let matchedTranslationLines = [];
 
         if (shouldTryMatched && songId) {
           try {
@@ -349,6 +351,9 @@ export function useLyricEngine(songId, audioElement, songMeta = null, lyricSourc
               sources: lyricSources || 'amll,qq,kugou'
             });
             const matchedLines = computeLineDurations(normalizeMatchedLines(matched));
+            matchedTranslationLines = Array.isArray(matched?.data?.translationLines)
+              ? matched.data.translationLines
+              : (Array.isArray(matched?.translationLines) ? matched.translationLines : []);
             const matchedQuality = assessLyricQuality(matchedLines, durationSec);
             if (matchedLines.length > 0 && !matchedQuality.lowQuality && (bestQuality.lowQuality || matchedQuality.wordTimed || matchedQuality.score > bestQuality.score + 8)) {
               bestLines = matchedLines;
@@ -356,6 +361,15 @@ export function useLyricEngine(songId, audioElement, songMeta = null, lyricSourc
             }
           } catch (matchErr) {
             console.warn('Failed to match enhanced lyrics:', matchErr);
+          }
+        }
+
+        // The matched provider usually wins on word timing but rarely carries a
+        // translation; the NetEase list we just kept is the bilingual companion.
+        if (bestLines !== neteaseLines && bestLines.length > 0) {
+          bestLines = fillMissingTranslations(bestLines, neteaseLines);
+          if (!hasAnyTranslation(bestLines) && matchedTranslationLines.length > 0) {
+            bestLines = fillMissingTranslations(bestLines, matchedTranslationLines);
           }
         }
 

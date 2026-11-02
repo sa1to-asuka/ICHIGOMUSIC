@@ -164,8 +164,16 @@ function sanitizeLyricLine(line) {
   }
 }
 
-function isAuxiliaryTtmlSpan(attrs) {
-  return /translation|trans|roman|romaji|roma|pronunciation|pronounce|pron\b|background/i.test(String(attrs || ''))
+function isTranslationTtmlSpan(attrs) {
+  return /translation|(?:^|[^a-z])trans(?:[^a-z]|$)/i.test(String(attrs || ''))
+}
+
+function isRomanTtmlSpan(attrs) {
+  return /roman|romaji|(?:^|[^a-z])roma(?:[^a-z]|$)|pronunciation|pronounce|(?:^|[^a-z])pron(?:[^a-z]|$)/i.test(String(attrs || ''))
+}
+
+function isBackgroundTtmlSpan(attrs) {
+  return /background/i.test(String(attrs || ''))
 }
 
 function assessMatchedLyric(result, target = {}) {
@@ -282,12 +290,24 @@ function parseTtml(ttml) {
     const spanRe = /<span\b([^>]*)>([\s\S]*?)<\/span>/gi
     let spanMatch
     let fullText = ''
+    let translationText = ''
+    let romanText = ''
     let sawSpan = false
     while ((spanMatch = spanRe.exec(body))) {
       sawSpan = true
-      if (isAuxiliaryTtmlSpan(spanMatch[1])) continue
       const spanText = stripTags(spanMatch[2])
       if (!spanText) continue
+      // AMLL files carry translations as sibling spans; keep them instead of
+      // dropping them so the client has something to show under the lyrics.
+      if (isTranslationTtmlSpan(spanMatch[1])) {
+        translationText += spanText
+        continue
+      }
+      if (isRomanTtmlSpan(spanMatch[1])) {
+        romanText += spanText
+        continue
+      }
+      if (isBackgroundTtmlSpan(spanMatch[1])) continue
       const wStart = parseClock(attr(spanMatch[1], 'begin')) || start
       const wEnd = parseClock(attr(spanMatch[1], 'end')) || wStart
       words.push({ text: spanText, startSec: wStart, endSec: wEnd, durationSec: Math.max(0.001, wEnd - wStart) })
@@ -295,7 +315,12 @@ function parseTtml(ttml) {
       if (wEnd > end) end = wEnd
     }
     if (!fullText && !sawSpan) fullText = cleanMixedLyricText(stripTags(body))
-    if (fullText) lines.push({ time: start, text: fullText, duration: Math.max(0.001, end - start), words, isYrc: words.length > 0, sourceFormat: 'ttml' })
+    if (fullText) {
+      const line = { time: start, text: fullText, duration: Math.max(0.001, end - start), words, isYrc: words.length > 0, sourceFormat: 'ttml' }
+      if (translationText) line.translation = translationText
+      if (romanText) line.romaji = romanText
+      lines.push(line)
+    }
   }
   return finishLines(lines, 'amll')
 }
@@ -498,6 +523,46 @@ async function fetchKugou(song) {
   return lines.length ? { source: 'kugou', format: 'krc', isWordByWord: true, providerSong: song, lines } : null
 }
 
+function hasLineTranslations(lines) {
+  return (lines || []).some(line => String(line?.translation || '').trim())
+}
+
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise(resolve => setTimeout(() => resolve(null), ms))
+  ])
+}
+
+// A word-timed winner (typically AMLL) often has no translation. QQ almost
+// always does, so fetch it as a companion list and let the client align it.
+async function collectTranslationLines(target, sources, preferredSong = null) {
+  if (!sources.includes('qq')) return null
+  try {
+    let candidates = []
+    if (preferredSong) {
+      candidates = [{ song: preferredSong }]
+    } else {
+      const keyword = [target.title, target.artist].filter(Boolean).join(' ')
+      if (!keyword) return null
+      candidates = rankCandidates(target, await searchQQ(keyword), 72, 2)
+    }
+    for (const best of candidates) {
+      const qq = await fetchQQ(best.song)
+      const translated = (qq?.lines || []).filter(line => String(line?.translation || '').trim())
+      if (translated.length >= 5) return translated
+    }
+  } catch (err) {}
+  return null
+}
+
+async function finalizeMatched(candidate, target, sources, preferredSong = null) {
+  if (!candidate) return null
+  if (hasLineTranslations(candidate.lines)) return candidate
+  const translationLines = await withTimeout(collectTranslationLines(target, sources, preferredSong), 3500)
+  return translationLines ? { ...candidate, translationLines } : candidate
+}
+
 async function autoMatchLyric(query) {
   const target = { title: query.title || query.name || '', artist: query.artist || '', durationMs: Number(query.durationMs || query.duration || 0), album: query.album || '' }
   const keyword = [target.title, target.artist].filter(Boolean).join(' ')
@@ -505,7 +570,9 @@ async function autoMatchLyric(query) {
 
   if (sources.includes('amll') && query.id) {
     const amll = await fetchAmll('ncm', query.id)
-    if (amll?.lines?.some(line => line.words?.length) && isUsableMatchedLyric(amll, target)) return amll
+    if (amll?.lines?.some(line => line.words?.length) && isUsableMatchedLyric(amll, target)) {
+      return finalizeMatched(amll, target, sources)
+    }
   }
 
   if (sources.includes('qq') && keyword) {
@@ -516,12 +583,12 @@ async function autoMatchLyric(query) {
         const amllQQ = best.song.qqMid ? await fetchAmll('qq', best.song.qqMid) : null
         if (amllQQ?.lines?.some(line => line.words?.length)) {
           const candidate = { ...amllQQ, providerSong: best.song, matchScore: best.score }
-          if (isUsableMatchedLyric(candidate, target)) return candidate
+          if (isUsableMatchedLyric(candidate, target)) return finalizeMatched(candidate, target, sources, best.song)
         }
         const qq = await fetchQQ(best.song)
         if (qq?.lines?.some(line => line.words?.length)) {
           const candidate = { ...qq, matchScore: best.score }
-          if (isUsableMatchedLyric(candidate, target)) return candidate
+          if (isUsableMatchedLyric(candidate, target)) return finalizeMatched(candidate, target, sources, best.song)
         }
       }
     } catch (err) {}
@@ -535,7 +602,7 @@ async function autoMatchLyric(query) {
         const kg = await fetchKugou(best.song)
         if (kg?.lines?.some(line => line.words?.length)) {
           const candidate = { ...kg, matchScore: best.score }
-          if (isUsableMatchedLyric(candidate, target)) return candidate
+          if (isUsableMatchedLyric(candidate, target)) return finalizeMatched(candidate, target, sources)
         }
       }
     } catch (err) {}

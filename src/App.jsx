@@ -980,7 +980,15 @@ function AppContent() {
                           <div aria-label="PV 模板速选" className="isp-pv-list">
                             {(Array.isArray(JIZURA_GALLERY_STYLES) ? JIZURA_GALLERY_STYLES : []).map((styleItem) => {
                               const value = styleItem.key;
-                              const selected = (advancedLyricConfig.ktvPreset || 'auto') === value || jizuraStatus.activeStyle === value;
+                              // Exactly one card is "in use": a per-song lock wins,
+                              // otherwise a concrete preset wins, otherwise show the
+                              // style the engine actually picked for "auto"/"multi".
+                              const presetValue = advancedLyricConfig.ktvPreset || 'auto';
+                              const effectiveKtvStyle = currentKtvSongTemplate
+                                || (presetValue === 'auto' || presetValue === 'multi'
+                                  ? (jizuraStatus.activeStyle || '')
+                                  : presetValue);
+                              const selected = effectiveKtvStyle === value;
                               return (
                                 <div
                                   key={value}
@@ -1417,6 +1425,134 @@ function AppContent() {
                             max={52}
                             unit="px"
                             onChange={(val) => updateAdvancedLyricConfig({ fontSize: val })}
+                          />
+                        </>
+                      )}
+
+                      {/* ================= 雾笺 (nebbia) ================= */}
+                      {advancedLyricConfig.lyricsMode === 'nebbia' && (
+                        <>
+                          <SettingSliderRow
+                            label="歌词字号"
+                            value={advancedLyricConfig.fontSize || 25}
+                            min={18}
+                            max={52}
+                            unit="px"
+                            onChange={(val) => updateAdvancedLyricConfig({ fontSize: val })}
+                          />
+                          <SettingSliderRow
+                            label="雾气浓度"
+                            value={advancedLyricConfig.nebbiaFog ?? 0.82}
+                            min={0.2}
+                            max={1}
+                            step={0.02}
+                            formatValue={(v) => `${Math.round(Number(v) * 100)}%`}
+                            onChange={(val) => updateAdvancedLyricConfig({ nebbiaFog: val })}
+                          />
+                          <SettingSliderRow
+                            label="水珠数量"
+                            value={advancedLyricConfig.nebbiaDroplets ?? 16}
+                            min={4}
+                            max={40}
+                            step={2}
+                            onChange={(val) => updateAdvancedLyricConfig({ nebbiaDroplets: val })}
+                          />
+                          <SettingSwitchRow
+                            label="末句显示歌曲卡"
+                            checked={advancedLyricConfig.nebbiaTitleCard !== false}
+                            onChange={(checked) => updateAdvancedLyricConfig({ nebbiaTitleCard: checked })}
+                          />
+                        </>
+                      )}
+
+                      {/* ================= 绘光 (lumiere) ================= */}
+                      {advancedLyricConfig.lyricsMode === 'lumiere' && (
+                        <>
+                          <SettingSliderRow
+                            label="歌词字号"
+                            value={advancedLyricConfig.fontSize || 25}
+                            min={18}
+                            max={52}
+                            unit="px"
+                            onChange={(val) => updateAdvancedLyricConfig({ fontSize: val })}
+                          />
+                          <SettingSliderRow
+                            label="光束数量"
+                            value={advancedLyricConfig.lumiereBeams ?? 4}
+                            min={1}
+                            max={8}
+                            step={1}
+                            onChange={(val) => updateAdvancedLyricConfig({ lumiereBeams: val })}
+                          />
+                          <SettingSliderRow
+                            label="烟雾浓度"
+                            value={advancedLyricConfig.lumiereSmoke ?? 0.6}
+                            min={0}
+                            max={1}
+                            step={0.05}
+                            formatValue={(v) => `${Math.round(Number(v) * 100)}%`}
+                            onChange={(val) => updateAdvancedLyricConfig({ lumiereSmoke: val })}
+                          />
+                          <SettingSliderRow
+                            label="文字辉光"
+                            value={advancedLyricConfig.lumiereGlow ?? 0.8}
+                            min={0.4}
+                            max={1.3}
+                            step={0.05}
+                            formatValue={(v) => Number(v).toFixed(2)}
+                            onChange={(val) => updateAdvancedLyricConfig({ lumiereGlow: val })}
+                          />
+                        </>
+                      )}
+
+                      {/* ================= 町景 (machi) ================= */}
+                      {advancedLyricConfig.lyricsMode === 'machi' && (
+                        <>
+                          <SettingSelect
+                            label="街景"
+                            value={advancedLyricConfig.machiScene || 'konbini'}
+                            onChange={(val) => updateAdvancedLyricConfig({ machiScene: val })}
+                            options={[
+                              { value: 'konbini', label: '便利店' },
+                              { value: 'gas', label: '加油站' },
+                              { value: 'corner', label: '街角' }
+                            ]}
+                          />
+                          <SettingSliderRow
+                            label="歌词字号"
+                            value={advancedLyricConfig.fontSize || 25}
+                            min={18}
+                            max={52}
+                            unit="px"
+                            onChange={(val) => updateAdvancedLyricConfig({ fontSize: val })}
+                          />
+                          <SettingSliderRow
+                            label="招牌亮度"
+                            value={advancedLyricConfig.machiSignGlow ?? 0.9}
+                            min={0}
+                            max={1.6}
+                            step={0.05}
+                            formatValue={(v) => Number(v).toFixed(2)}
+                            onChange={(val) => updateAdvancedLyricConfig({ machiSignGlow: val })}
+                          />
+                          <SettingSliderRow
+                            label="运镜幅度"
+                            value={advancedLyricConfig.machiCamera ?? 0.6}
+                            min={0}
+                            max={1.5}
+                            step={0.05}
+                            formatValue={(v) => Number(v).toFixed(2)}
+                            onChange={(val) => updateAdvancedLyricConfig({ machiCamera: val })}
+                          />
+                          <SettingSwitchRow
+                            label="夜间街景"
+                            checked={advancedLyricConfig.machiNight !== false}
+                            onChange={(checked) => updateAdvancedLyricConfig({ machiNight: checked })}
+                          />
+                          <SettingSwitchRow
+                            label="下雨"
+                            checked={advancedLyricConfig.machiRain === true}
+                            onChange={(checked) => updateAdvancedLyricConfig({ machiRain: checked })}
                           />
                         </>
                       )}

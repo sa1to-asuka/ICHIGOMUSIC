@@ -319,8 +319,7 @@ export default function LyricExportModal({ isOpen, onClose, currentSong, lyrics 
           maxHeight: '88vh',
           padding: 0,
           gap: 0,
-          overflow: 'hidden',
-          position: 'relative'
+          overflow: 'hidden'
         }}
       >
         {/* Header */}

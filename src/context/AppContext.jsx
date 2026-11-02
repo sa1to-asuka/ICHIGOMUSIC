@@ -767,6 +767,17 @@ export function AppProvider({ children }) {
   // Short-lived URL cache to avoid slow API re-fetches when switching songs quickly
   const songUrlCacheRef = useRef(new Map());
   const songUrlInFlightRef = useRef(new Map());
+  // URL -> the quality level the CDN actually served. A request for lossless
+  // that falls back to standard must not be remembered as lossless, or the next
+  // play reuses the low-bitrate stream and the song sounds muffled forever.
+  const songUrlLevelRef = useRef(new Map());
+  const rememberUrlLevel = useCallback((url, level) => {
+    if (url && level) songUrlLevelRef.current.set(url, level);
+  }, []);
+  const getUrlLevel = useCallback(
+    (url, fallback) => (url && songUrlLevelRef.current.get(url)) || fallback,
+    []
+  );
   const coverCacheInFlightRef = useRef(new Map());
   const audioCacheQueueRef = useRef([]);
   const audioCacheWorkerRef = useRef({ timerId: null, running: false, currentKey: '' });
@@ -974,6 +985,7 @@ export function AppProvider({ children }) {
       }).catch(() => null);
       if (cachedAudio?.url) {
         songUrlCacheRef.current.set(urlCacheKey, { url: cachedAudio.url, time: now });
+        rememberUrlLevel(cachedAudio.url, requestedQuality);
         pruneSongUrlCache();
         return cachedAudio.url;
       }
@@ -989,8 +1001,10 @@ export function AppProvider({ children }) {
     if (!forceRefreshUrl && !localUrlMissing && song.url && song.urlCachedAt && now - Number(song.urlCachedAt) < 15 * 60 * 1000
       && (!song.urlQuality || song.urlQuality === requestedQuality)) {
       songUrlCacheRef.current.set(urlCacheKey, { url: song.url, time: Number(song.urlCachedAt) });
+      const reusedLevel = song.urlQuality || requestedQuality;
+      rememberUrlLevel(song.url, reusedLevel);
       pruneSongUrlCache();
-      cacheAudioInBackground(song, requestedQuality, song.url);
+      cacheAudioInBackground(song, reusedLevel, song.url);
       return song.url;
     }
 
@@ -1000,9 +1014,14 @@ export function AppProvider({ children }) {
     }
 
     if (!songUrlInFlightRef.current.has(urlCacheKey)) {
+      // Walk DOWN the quality ladder from the requested level. Jumping straight
+      // to "standard" (or "low") meant a Hi-Res request on a song without
+      // Hi-Res returned a muffled stream even when lossless/exhigh existed.
+      const qualityLadder = ['jymaster', 'hires', 'lossless', 'exhigh', 'higher', 'standard'];
+      const requestedIndex = qualityLadder.indexOf(requestedQuality);
       const qualityCandidates = [...new Set([
         requestedQuality,
-        requestedQuality === 'exhigh' ? 'higher' : null,
+        ...(requestedIndex >= 0 ? qualityLadder.slice(requestedIndex + 1) : ['exhigh', 'higher', 'standard']),
         'standard',
         'low'
       ].filter(Boolean))];
@@ -1015,8 +1034,18 @@ export function AppProvider({ children }) {
               : urlRes?.data?.url || null;
             if (!songUrl) continue;
             songUrlCacheRef.current.set(urlCacheKey, { url: songUrl, time: Date.now() });
+            rememberUrlLevel(songUrl, qualityLevel);
             pruneSongUrlCache();
-            cacheAudioInBackground(song, requestedQuality, songUrl);
+            // Cache under the level we actually got. Storing a standard stream
+            // under "lossless" made later plays quietly reuse the low bitrate.
+            cacheAudioInBackground(song, qualityLevel, songUrl);
+            if (qualityLevel !== requestedQuality) {
+              appendRuntimeLog('warn', '当前音质不可用，已回退到可用音质', {
+                songId: song.id,
+                requestedQuality,
+                resolvedQuality: qualityLevel
+              }, 'audio');
+            }
             return songUrl;
           } catch (error) {
             console.warn(`Failed to resolve ${qualityLevel} playback URL for song ${song.id}:`, error);
@@ -1032,6 +1061,7 @@ export function AppProvider({ children }) {
           if (unblockUrl) {
             appendRuntimeLog('info', '通过智能解灰获取到歌曲音频链接', { songId: song.id }, 'audio');
             songUrlCacheRef.current.set(urlCacheKey, { url: unblockUrl, time: Date.now() });
+            rememberUrlLevel(unblockUrl, 'standard');
             pruneSongUrlCache();
             return unblockUrl;
           }
@@ -1046,6 +1076,7 @@ export function AppProvider({ children }) {
           if (matchUrl && typeof matchUrl === 'string' && matchUrl.startsWith('http')) {
             appendRuntimeLog('info', '通过全网匹配获取到歌曲音频链接', { songId: song.id }, 'audio');
             songUrlCacheRef.current.set(urlCacheKey, { url: matchUrl, time: Date.now() });
+            rememberUrlLevel(matchUrl, 'standard');
             pruneSongUrlCache();
             return matchUrl;
           }
@@ -1062,7 +1093,7 @@ export function AppProvider({ children }) {
     }
 
     return songUrlInFlightRef.current.get(urlCacheKey);
-  }, [cacheAudioInBackground, pruneSongUrlCache]);
+  }, [cacheAudioInBackground, pruneSongUrlCache, rememberUrlLevel]);
 
   // Playback Control logic
   const playSong = useCallback(async (song, newQueue = null, resumeProgress = null, options = {}) => {
@@ -1172,7 +1203,12 @@ export function AppProvider({ children }) {
       if (audioElement) {
         try {
           audioElement.pause();
-          audioElement.currentTime = 0;
+          // A quality switch reloads the same song. Keep the current position:
+          // zeroing it here made the progress bar restart from 0 before the new
+          // source had a chance to seek back to resumeTime.
+          if (!sameSongId(currentSong?.id, song?.id)) {
+            audioElement.currentTime = 0;
+          }
           // Keep the last committed media URL on the element until React has
           // committed the newly resolved one. Calling load() after removing
           // src creates MEDIA_ERR_SRC_NOT_SUPPORTED ("Empty src attribute")
@@ -1210,11 +1246,14 @@ export function AppProvider({ children }) {
         originalCoverUrl: coverUrl || getSongCoverUrl(coverSourceSong, true),
         durationMs: coverSourceSong.dt || coverSourceSong.duration || coverSourceSong.durationMs || 0,
         urlCachedAt: Date.now(),
-        urlQuality: audioQuality
+        urlQuality: getUrlLevel(songUrl, audioQuality)
       };
 
       if (resumeProgress !== null) {
-        persistResumeTime(resumeProgress);
+        // When the CDN hands back the exact source already loaded, the media
+        // element never reloads and never consumes resumeTime; clearing it
+        // keeps a stale seek point from surprising the next track.
+        persistResumeTime(songUrl === currentSong?.url ? null : resumeProgress);
       } else {
         // A normal song selection must not inherit a stale resumeTime from the
         // previous track/session; that can seek the new media into an invalid
@@ -1271,7 +1310,7 @@ export function AppProvider({ children }) {
         setIsPlaying(false);
       }
     }
-  }, [persistResumeTime, setPlaylistAndPersist, setPlaylistIndexAndPersist, setCurrentSongAndPersist, setIsPlaying, addToRecent, getPlayableSongUrl, cacheCoverInBackground, recordPlayHistory]);
+  }, [persistResumeTime, setPlaylistAndPersist, setPlaylistIndexAndPersist, setCurrentSongAndPersist, setIsPlaying, addToRecent, getPlayableSongUrl, cacheCoverInBackground, recordPlayHistory, getUrlLevel]);
 
   useEffect(() => {
     if (!currentSong?.id || !cacheConfig?.enabled) return;
@@ -1312,12 +1351,16 @@ export function AppProvider({ children }) {
 
   const setAudioQuality = useCallback((quality) => {
     if (stateRef.current.listenPlaybackLocked) return;
-    const { currentSong, progress } = stateRef.current;
+    const { currentSong, progress, audioElement } = stateRef.current;
     updateProfile({ audio: { quality } });
     if (currentSong) {
+      // Read the live media clock, not the throttled progress state: the latter
+      // can lag by over a second and used to make the switch restart at 0.
+      const liveTime = audioElement && Number.isFinite(audioElement.currentTime) ? audioElement.currentTime : 0;
+      const resumeFrom = liveTime > 0 ? liveTime : (Number(progress) || 0);
       // A quality change must bypass the previous URL and request the new
       // level from /song/url/v1 instead of reusing the old cached source.
-      playSong(currentSong, null, progress, { forceRefreshUrl: true });
+      playSong(currentSong, null, resumeFrom, { forceRefreshUrl: true });
     }
   }, [updateProfile, playSong]);
 

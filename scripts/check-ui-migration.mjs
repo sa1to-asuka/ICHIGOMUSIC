@@ -69,6 +69,19 @@ const exportModal = read('src/components/LyricExportModal.jsx');
 assert(exportModal.includes('lyrics = EMPTY_LYRICS'), 'LyricExportModal must default lyrics to the stable EMPTY_LYRICS');
 assert(exportModal.includes('[isOpen, hasExternalLyrics, songId]'), 'LyricExportModal lyric fetch must key on primitive deps');
 
+// ModalContent renders a Radix Dialog.Content that the primitive centers with
+// `position: fixed`. An inline `position: relative` on the style prop moves the
+// dialog into normal flow at the end of <body> and it lands off-screen.
+sourceFiles.forEach((file) => {
+  const source = fs.readFileSync(file, 'utf8');
+  const openingTag = source.match(/<ModalContent\b[\s\S]*?style=\{\{([\s\S]*?)\}\}/);
+  if (!openingTag) return;
+  assert(
+    !/position:\s*['"]relative['"]/.test(openingTag[1]),
+    `ModalContent in ${path.relative(root, file)} overrides position; the dialog will render off-screen`
+  );
+});
+
 if (process.exitCode) {
   console.error('[ui-migration] FAILED');
 } else {
