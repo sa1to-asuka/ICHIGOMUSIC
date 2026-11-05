@@ -9,7 +9,8 @@ const MODE_DESCRIPTIONS = {
   filmstrip: '歌词以电影胶片帧呈现，当前句像镜头一样被聚焦。',
   nebbia: '雨夜车窗起雾，逐字写在雾气上，笔画过后露出窗外夜景。',
   lumiere: '体积光与烟雾中，歌词随光束逐字点亮。',
-  machi: '日本小镇微缩街景，歌词写在招牌与 LED 大屏上。'
+  machi: '日本小镇微缩街景，歌词写在招牌与 LED 大屏上。',
+  sonnet: '杂志式动态排版，按语义分句搭配运镜、分镜与后期质感。'
   // spotlight: '当前歌词像舞台聚光灯一样突出，上下句柔和退场。',
   // starfield: '星点和歌词形成缓慢星轨，适合夜晚或氛围音乐。',
   // inkflow: '背景墨迹随歌词呼吸扩散，适合中文和抒情歌曲。'
@@ -79,7 +80,8 @@ export const IMMERSIVE_MODE_OPTIONS = [
   { value: 'filmstrip', label: '胶片模式' },
   { value: 'nebbia', label: '雾笺' },
   { value: 'lumiere', label: '绘光' },
-  { value: 'machi', label: '町景' }
+  { value: 'machi', label: '町景' },
+  { value: 'sonnet', label: '商籁' }
   // { value: 'spotlight', label: '聚光灯舞台' },
   // { value: 'starfield', label: '星轨模式' },
   // { value: 'inkflow', label: '水墨流动' }
@@ -97,6 +99,7 @@ export const IMMERSIVE_MODE_PARAMETER_KEYS = {
   nebbia: ['nebbiaFog', 'nebbiaDroplets', 'nebbiaTitleCard', 'showTranslation'],
   lumiere: ['lumiereBeams', 'lumiereSmoke', 'lumiereGlow', 'showTranslation'],
   machi: ['machiScene', 'machiNight', 'machiRain', 'machiCamera', 'machiSignGlow', 'showTranslation'],
+  sonnet: ['sonnetCamera', 'sonnetTypography', 'sonnetDensity', 'sonnetPostProcess', 'sonnetGrain', 'sonnetRgbShift', 'sonnetHalftone', 'sonnetVignette', 'sonnetOuterFrame', 'sonnetShowGuide', 'sonnetShowMg', 'sonnetShowGiantText', 'sonnetEnableTransitions', 'showTranslation'],
   // spotlight: ['spotlightLineGap', 'spotlightDimOpacity', 'spotlightScale', 'spotlightShowTranslation', 'spotlightShowGlow', 'spotlightEffect', 'spotlightMotion'],
   // starfield: ['starDensity', 'starSpeed', 'starDepth', 'starShowTranslation'],
   // inkflow: ['inkSpread', 'inkOpacity', 'inkSpeed', 'inkShowTranslation'],
@@ -118,7 +121,8 @@ export const DEFAULT_VISUALIZER_BY_MODE = {
   filmstrip: 'filmstrip',
   nebbia: 'off',
   lumiere: 'off',
-  machi: 'off'
+  machi: 'off',
+  sonnet: 'off'
   // spotlight: 'spotlight',
   // starfield: 'starfield',
   // inkflow: 'inkflow'

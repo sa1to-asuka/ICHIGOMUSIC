@@ -1557,6 +1557,122 @@ function AppContent() {
                         </>
                       )}
 
+                      {/* ================= 商籁 (sonnet) ================= */}
+                      {advancedLyricConfig.lyricsMode === 'sonnet' && (
+                        <>
+                          <SettingSliderRow
+                            label="歌词字号"
+                            value={advancedLyricConfig.fontSize || 25}
+                            min={18}
+                            max={52}
+                            unit="px"
+                            onChange={(val) => updateAdvancedLyricConfig({ fontSize: val })}
+                          />
+                          <SettingSliderRow
+                            label="运镜强度"
+                            value={advancedLyricConfig.sonnetCamera ?? 1}
+                            min={0}
+                            max={2}
+                            step={0.05}
+                            formatValue={(v) => Number(v).toFixed(2)}
+                            onChange={(val) => updateAdvancedLyricConfig({ sonnetCamera: val })}
+                          />
+                          <SettingSliderRow
+                            label="排版动感"
+                            value={advancedLyricConfig.sonnetTypography ?? 1}
+                            min={0}
+                            max={2}
+                            step={0.05}
+                            formatValue={(v) => Number(v).toFixed(2)}
+                            onChange={(val) => updateAdvancedLyricConfig({ sonnetTypography: val })}
+                          />
+                          <SettingSliderRow
+                            label="装饰密度"
+                            value={advancedLyricConfig.sonnetDensity ?? 1}
+                            min={0}
+                            max={2}
+                            step={0.05}
+                            formatValue={(v) => Number(v).toFixed(2)}
+                            onChange={(val) => updateAdvancedLyricConfig({ sonnetDensity: val })}
+                          />
+                          <SettingSelect
+                            label="外框"
+                            value={advancedLyricConfig.sonnetOuterFrame || 'frame'}
+                            onChange={(val) => updateAdvancedLyricConfig({ sonnetOuterFrame: val })}
+                            options={[
+                              { value: 'none', label: '无' },
+                              { value: 'frame', label: '细框' },
+                              { value: 'full', label: '完整画框' }
+                            ]}
+                          />
+                          <SettingSwitchRow
+                            label="后期质感"
+                            checked={advancedLyricConfig.sonnetPostProcess !== false}
+                            onChange={(checked) => updateAdvancedLyricConfig({ sonnetPostProcess: checked })}
+                          />
+                          {advancedLyricConfig.sonnetPostProcess !== false && (
+                            <>
+                              <SettingSliderRow
+                                label="胶片颗粒"
+                                value={advancedLyricConfig.sonnetGrain ?? 0.18}
+                                min={0}
+                                max={1}
+                                step={0.02}
+                                formatValue={(v) => `${Math.round(Number(v) * 100)}%`}
+                                onChange={(val) => updateAdvancedLyricConfig({ sonnetGrain: val })}
+                              />
+                              <SettingSliderRow
+                                label="RGB 色差"
+                                value={advancedLyricConfig.sonnetRgbShift ?? 0.35}
+                                min={0}
+                                max={1}
+                                step={0.02}
+                                formatValue={(v) => `${Math.round(Number(v) * 100)}%`}
+                                onChange={(val) => updateAdvancedLyricConfig({ sonnetRgbShift: val })}
+                              />
+                              <SettingSliderRow
+                                label="网点强度"
+                                value={advancedLyricConfig.sonnetHalftone ?? 0.1}
+                                min={0}
+                                max={1}
+                                step={0.02}
+                                formatValue={(v) => `${Math.round(Number(v) * 100)}%`}
+                                onChange={(val) => updateAdvancedLyricConfig({ sonnetHalftone: val })}
+                              />
+                              <SettingSliderRow
+                                label="暗角"
+                                value={advancedLyricConfig.sonnetVignette ?? 0.9}
+                                min={0}
+                                max={2}
+                                step={0.05}
+                                formatValue={(v) => Number(v).toFixed(2)}
+                                onChange={(val) => updateAdvancedLyricConfig({ sonnetVignette: val })}
+                              />
+                            </>
+                          )}
+                          <SettingSwitchRow
+                            label="背景动效"
+                            checked={advancedLyricConfig.sonnetShowMg !== false}
+                            onChange={(checked) => updateAdvancedLyricConfig({ sonnetShowMg: checked })}
+                          />
+                          <SettingSwitchRow
+                            label="巨型装饰文字"
+                            checked={advancedLyricConfig.sonnetShowGiantText !== false}
+                            onChange={(checked) => updateAdvancedLyricConfig({ sonnetShowGiantText: checked })}
+                          />
+                          <SettingSwitchRow
+                            label="转场动效"
+                            checked={advancedLyricConfig.sonnetEnableTransitions !== false}
+                            onChange={(checked) => updateAdvancedLyricConfig({ sonnetEnableTransitions: checked })}
+                          />
+                          <SettingSwitchRow
+                            label="构图参考线"
+                            checked={advancedLyricConfig.sonnetShowGuide === true}
+                            onChange={(checked) => updateAdvancedLyricConfig({ sonnetShowGuide: checked })}
+                          />
+                        </>
+                      )}
+
                       {/* ================= 背景微粒装饰 ================= */}
                       <SettingSwitchRow
                         label="背景悬浮微粒 (Floating decor)"

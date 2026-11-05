@@ -128,4 +128,17 @@ if (typeof DEFAULT_PROFILE.immersiveLyrics.ktvSongTemplates !== 'object') fail('
 for (const marker of ['KTV_TEMPLATE_GALLERY', 'PV 模板速选', 'ktvPreset: value', '锁定本曲', '恢复自动']) {
   if (!appSource.includes(marker)) fail(`KTV template selector is missing ${marker}`);
 }
+if (!IMMERSIVE_MODE_IDS.includes('sonnet')) fail('sonnet (商籁) mode must be registered');
+if (!immersiveStageSource.includes("React.lazy(() => import('./SonnetLyrics'))")) fail('sonnet stage must be loaded on demand');
+const sonnetSource = fs.readFileSync(new URL('../src/components/lyrics/SonnetLyrics.jsx', import.meta.url), 'utf8');
+const sonnetProgramSource = fs.readFileSync(new URL('../src/utils/lyrics/sonnetProgram.js', import.meta.url), 'utf8');
+for (const marker of ['compileSonnetProgram', 'resolveShotMotionFrame']) {
+  if (!sonnetProgramSource.includes(marker)) fail(`sonnet program missing ${marker}`);
+}
+for (const marker of ['buildSonnetLayout', 'subscribeLyricClock', 'sonnet-camera', 'dangerouslySetInnerHTML']) {
+  if (!sonnetSource.includes(marker)) fail(`sonnet renderer missing ${marker}`);
+}
+if (DEFAULT_PROFILE.immersiveLyrics.sonnetCamera !== 1) fail('sonnet camera intensity must default to 1');
+if (DEFAULT_PROFILE.immersiveLyrics.sonnetEnableTransitions !== true) fail('sonnet transitions must default to enabled');
+if (!appSource.includes("advancedLyricConfig.lyricsMode === 'sonnet'")) fail('sonnet settings panel is missing');
 console.log(`[immersive-config] OK: ${IMMERSIVE_MODE_IDS.length} modes, ${IMMERSIVE_PRESETS.length} presets`);
